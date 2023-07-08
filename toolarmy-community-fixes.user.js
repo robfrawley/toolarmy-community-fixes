@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tool Army Community Fixes
 // @namespace    https://github.com/robfrawley/toolarmy-community-fixes
-// @version      0.6.0
+// @version      0.6.1
 // @description  A collection of CSS style fixes and JavaScript behavioral changes for the Tool Army website.
 // @author       Rob Frawley 2nd <src@robfrawley.com>
 // @copyright    2023
@@ -836,7 +836,7 @@
         ]),
         new StyleSelector('.fan-wall.activity-panel .fan-wall-post.discussions', [
             new StylePropertyImpt('border-color', 'rgb(15 15 15)'),
-            new StylePropertyImpt('background-color', 'rgb(255 255 255 / 75%)'),
+            new StylePropertyImpt('background-color', 'rgb(255 255 255 / 65%)'),
         ]),
         new StyleSelector('.fan-wall.activity-panel .fan-wall-post.discussions > li', [
             new StylePropertyImpt('background-color', 'rgb(15 11 14 / 27%)'),
