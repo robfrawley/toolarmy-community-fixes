@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tool Army Community Fixes
 // @namespace    https://github.com/robfrawley/toolarmy-community-fixes
-// @version      0.7.1
+// @version      0.7.4
 // @description  A collection of CSS style fixes and JavaScript behavioral changes for the Tool Army website.
 // @author       Rob Frawley 2nd <src@robfrawley.com>
 // @copyright    2023
@@ -107,6 +107,7 @@
     }
 
     class PostLikeAutomation {
+        _callerFreq = 2000;
         _actRunning = false;
         _anchorName = 'auto-like-button';
         _buttonSpan = '<span class="button">Auto Like Posts</span>';
@@ -114,15 +115,15 @@
         _statusText = {
             running: 'Running',
             stopped: 'Not Running',
-            errored: 'Invalid Page',
+            starting: 'Starting',
         };
         _statusIden = [
             'running',
             'stopped',
-            'errored',
+            'starting',
         ];
 
-        constructor(menuSelector) {
+        constructor(menuSelector, consoleLogger) {
             const windowPathname = window.location.pathname;
 
             if (!windowPathname.startsWith('/forums') && !windowPathname.startsWith('/feeds')) {
@@ -133,6 +134,7 @@
                 jq(`<a id="${this._anchorName}" href="#">${this._buttonSpan} ${this._statusSpan}</a>`)
             );
 
+            this._log = consoleLogger;
             this._linkAnchor = jq('a#auto-like-button');
             this._linkButton = this._linkAnchor.find('.button');
             this._linkStatus = this._linkAnchor.find('.status');
@@ -141,26 +143,32 @@
                 event.preventDefault();
 
                 if (this._actRunning) {
-                    this.setStateStopped();
+                    this._setStateStopped();
                 } else {
-                    this.setStateRunning();
+                    this._setStateRunning();
                 }
             });
         }
 
-        setStateRunning() {
-            this._setLinkStatusState('running');
-            this._setupIntervals();
+        _setStateStopped() {
+            if (this._clearIntervals()) {
+                this._setLinkStatusState('stopped');
+            }
         }
 
-        setStateStopped() {
-            this._setLinkStatusState('stopped');
-            this._clearIntervals();
-        }
+        _setStateRunning() {
+            const setStateRunning = () => {
+                this._setLinkStatusState('running');
+            };
 
-        setStateErrored() {
-            this._setLinkStatusState('errored');
-            this._clearIntervals();
+            this._setStateStopped();
+            this._setLinkStatusState('starting');
+
+            if (this._setupIntervals()) {
+                setTimeout(setStateRunning.bind(this), Math.round(this._callerFreq * 0.75));
+            } else {
+                this._setStateStopped();
+            }
         }
 
         _setLinkStatusState(state) {
@@ -173,49 +181,69 @@
         }
 
         _setupIntervals() {
-            try {
-                this._doPostLikeInterval = setInterval(this._doPostLikeAction.bind(this), 2000);
-                this._doMoveUpUpInterval = setInterval(this._doMoveUpUpAction.bind(this), 750);
-            } catch(e) {
-                log.warn('(ACTS) Auto like failed to setup intervals:', e);
+            const doMoveUpUpInterval = () => {
+                this._doMoveUpUpInterval = setInterval(
+                    this._doMoveUpUpAction.bind(this), Math.round(this._callerFreq * 0.25)
+                );
+            };
+
+            if (!this._actRunning) {
+                try {
+                    this._doPostLikeInterval = setInterval(
+                        this._doPostLikeAction.bind(this), Math.round(this._callerFreq)
+                    );
+                    setTimeout(
+                        doMoveUpUpInterval.bind(this), Math.round(this._callerFreq * 1.5)
+                    );
+                } catch(e) {
+                    this._log.warn('(ACTS) [PostLikeAutomation] Auto like failed to setup intervals:', e);
+                    return false;
+                }
             }
+
+            return true;
         }
 
         _clearIntervals() {
-            try {
-                clearInterval(this._doPostLikeInterval);
-                clearInterval(this._doMoveUpUpInterval);
-            } catch(e) {
-                log.warn('(ACTS) Auto like failed to clear intervals:', e);
+            if (this._actRunning) {
+                try {
+                    clearInterval(this._doPostLikeInterval);
+                    clearInterval(this._doMoveUpUpInterval);
+                } catch(e) {
+                    this._log.warn('(ACTS) [PostLikeAutomation] Auto like failed to clear intervals:', e);
+                    return false;
+                }
             }
+
+            return true;
         }
 
         _doPostLikeAction() {
-            this._doPostLikeActionRemoveExtraPosts();
-            this._doPostLikeActionMoveToPageBottom();
             this._doPostLikeActionPerformLikeClick();
+            this._doPostLikeActionMoveToPageBottom();
+            this._doPostLikeActionRemoveExtraPosts();
         }
 
         _doMoveUpUpAction() {
             let scrollAtPosition = Math.floor(document.documentElement.scrollTop || document.body.scrollTop);
-            let scrollToPosition = scrollAtPosition - 100;
+            let scrollToPosition = scrollAtPosition - 25;
 
             try {
                 window.scrollTo(0, scrollToPosition);
             } catch(e) {
-                log.fail('[scrollUpABit] Failed jumping scroll position up a bit ...', e);
+                this._log.fail('(ACTS) [PostLikeAutomation] Failed jumping scroll position up a bit ...', e);
             }
         }
 
         _doPostLikeActionMoveToPageBottom() {
             let scrollToPosition = document.body.scrollHeight;
 
-            log.info('[scrollToBott] Jump to "' + Normalizer.padValue(scrollToPosition, 12) + '" scroll position ...');
+            this._log.info(`(ACTS) [PostLikeAutomation] Jump to "${Normalizer.padValue(scrollToPosition, 12)}" scroll position ...`);
 
             try {
                 window.scrollTo(0, scrollToPosition);
             } catch(e) {
-                log.fail('[scrollToBott] Failed jumping to scroll position ...', e);
+                this._log.fail('(ACTS) [PostLikeAutomation] Failed jumping to scroll position ...', e);
             }
         }
 
@@ -231,23 +259,24 @@
             const postElementsLocated = this._querySelects('div.improvised_like_link[like-type=""]:not(.like-disable)');
             const postElementsToClick = sliceRandom(postElementsLocated, 30, 5);
 
-            log.info('[socialClicks] Clicked "' + Normalizer.padValue(postElementsToClick.length) + '" of "' + Normalizer.padValue(postElementsLocated.length) + '" post social buttons ...');
+            this._log.info(`(ACTS) [PostLikeAutomation] Clicked "${
+                Normalizer.padValue(postElementsToClick.length)
+            }" of "${
+                Normalizer.padValue(postElementsLocated.length)
+            }" post social buttons ...`);
 
             try {
                 postElementsToClick.forEach(clickElement);
             } catch(e) {
-                log.fail('[socialClicks] Failed clicking post social buttons ...', e);
+                this._log.fail('(ACTS) [PostLikeAutomation] Failed clicking post social buttons ...', e);
             }
 
             return postElementsToClick.length;
         }
 
-        _doPostLikeActionRemoveExtraPosts(percent = 0.5, minimum = 20) {
+        _doPostLikeActionRemoveExtraPosts(percent = 1, minimum = 20) {
             let postingElements = this._querySelects('div.card-parent-div');
             let postingDelCount = Math.max(Math.floor(postingElements.length * percent), 0);
-            let rmDomElement = (element) => {
-                return element.parentNode.removeChild(element);
-            };
 
             if (postingDelCount > postingElements.length) {
                 postingDelCount = postingElements.length;
@@ -257,13 +286,15 @@
                 postingDelCount = Math.max(postingElements.length - minimum, 0);
             }
 
-            postingElements.slice(0, postingDelCount).forEach(rmDomElement);
+            postingElements.slice(0, postingDelCount).forEach((element) => {
+                return element.parentNode.removeChild(element);
+            });
 
-            log.info('[postsRemoval] Removed "' + Normalizer.padValue(
-                postingDelCount
-            ) + '" of "' + Normalizer.padValue(
-                postingElements.length
-            ) + '" posts ...');
+            this._log.info(`(ACTS) [PostLikeAutomation] Removed "${
+                Normalizer.padValue(postingDelCount)
+            }" of "${
+                Normalizer.padValue(postingElements.length)
+            }" posts ...`);
 
             let commentElements = this._querySelects('div.grid-item.listMessages');
             let commentDelCount = Math.max(Math.floor(commentElements.length * percent), 0);
@@ -276,13 +307,15 @@
                 commentDelCount = Math.max(commentElements.length - minimum, 0);
             }
 
-            commentElements.slice(0, commentDelCount).forEach(rmDomElement);
+            commentElements.slice(0, commentDelCount).forEach((element) => {
+                return element.parentNode.removeChild(element);
+            });
 
-            log.info('[postsRemoval] Removed "' + Normalizer.padValue(
-                commentDelCount
-            ) + '" of "' + Normalizer.padValue(
-                commentElements.length
-            ) + '" comments ...');
+            this._log.info(`(ACTS) [PostLikeAutomation] Removed "${
+                Normalizer.padValue(commentDelCount)
+            }" of "${
+                Normalizer.padValue(commentElements.length)
+            }" comments ...`);
         }
 
         _querySelects(selector) {
@@ -1051,7 +1084,7 @@
         new StyleSelector('#auto-like-button span.status.running', [
             new StylePropertyImpt('color', 'rgb(62 123 58)'),
         ]),
-        new StyleSelector('#auto-like-button span.status.errored', [
+        new StyleSelector('#auto-like-button span.status.starting', [
             new StylePropertyImpt('color', ' rgb(139 89 33)'),
         ]),
     ]);
@@ -1295,7 +1328,7 @@
     const setupInjectionsAutoLikeLink = () => {
         log.info('(INIT) Injecting auto like operation link ...');
 
-        const autoPostLike = new PostLikeAutomation('.fb-navigation-user .dropdown-menu');
+        const autoPostLike = new PostLikeAutomation('.fb-navigation-user .dropdown-menu', log);
     };
 
     const setupInjections = () => {
