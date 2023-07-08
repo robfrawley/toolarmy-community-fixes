@@ -220,7 +220,6 @@
         }
 
         _doPostLikeActionPerformLikeClick() {
-
             const sliceRandom = (arr, max, min) => {
                 return arr.slice(0, arr.length > max ? getRandomInt(max, min) : arr.length);
             };
