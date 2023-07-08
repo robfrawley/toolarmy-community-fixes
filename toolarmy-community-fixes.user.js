@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tool Army Community Fixes
 // @namespace    https://github.com/robfrawley/toolarmy-community-fixes
-// @version      0.7.4
+// @version      0.7.5
 // @description  A collection of CSS style fixes and JavaScript behavioral changes for the Tool Army website.
 // @author       Rob Frawley 2nd <src@robfrawley.com>
 // @copyright    2023
@@ -1085,7 +1085,10 @@
             new StylePropertyImpt('color', 'rgb(62 123 58)'),
         ]),
         new StyleSelector('#auto-like-button span.status.starting', [
-            new StylePropertyImpt('color', ' rgb(139 89 33)'),
+            new StylePropertyImpt('color', 'rgb(139 89 33)'),
+        ]),
+        new StyleSelector('.full-detail.article .title-desc p.title-link-preview', [
+            new StylePropertyImpt('line-height', 'inherit'),
         ]),
     ]);
 
@@ -1331,11 +1334,20 @@
         const autoPostLike = new PostLikeAutomation('.fb-navigation-user .dropdown-menu', log);
     };
 
+    const setupInjectionsTextBookmark = () => {
+        log.info('(INIT) Injecting bookmarks text (instead of favorites) ...');
+
+        try {
+            jq('.forum-bar a#favorites').text('Bookmarks');
+        } catch (e) {}
+    };
+
     const setupInjections = () => {
         log.info('(INIT) Setting up page injections ...');
 
         setupInjectionsMessagesIcon();
         setupInjectionsAutoLikeLink();
+        setupInjectionsTextBookmark();
     };
 
     /* invoke functions that do not require page load event to fire */
