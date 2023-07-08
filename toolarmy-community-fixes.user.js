@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Tool Army Community Style Fixes
-// @namespace    https://gist.github.com/robfrawley
-// @version      0.2.8
-// @description  A collection of style fixes for the community sections of Tool's website.
+// @name         Tool Army Community Fixes
+// @namespace    https://github.com/robfrawley/toolarmy-community-fixes
+// @version      0.5.0
+// @description  A collection of CSS style fixes and JavaScript behavioral changes for the Tool Army website.
 // @author       Rob Frawley 2nd <src@robfrawley.com>
 // @copyright    2023
 // @license      https://src.mit-license.com/
@@ -11,55 +11,80 @@
 // @grant        GM_log
 // @require      https://code.jquery.com/jquery-3.7.0.min.js
 // @icon         data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48IS0tIEZvbnQgQXdlc29tZSBQcm8gNS4xNS40IGJ5IEBmb250YXdlc29tZSAtIGh0dHBzOi8vZm9udGF3ZXNvbWUuY29tIExpY2Vuc2UgLSBodHRwczovL2ZvbnRhd2Vzb21lLmNvbS9saWNlbnNlIChDb21tZXJjaWFsIExpY2Vuc2UpIC0tPjxkZWZzPjxzdHlsZT4uZmEtc2Vjb25kYXJ5e29wYWNpdHk6LjR9PC9zdHlsZT48L2RlZnM+PHBhdGggZD0iTTM1MiAyNTZhMjQgMjQgMCAxIDAgMjQgMjQgMjQgMjQgMCAwIDAtMjQtMjR6bS0xOTQuNDggMTZoMzdMMTc2IDIxOC43OHpNNDY0IDY0SDQ4YTQ4IDQ4IDAgMCAwLTQ4IDQ4djI4OGE0OCA0OCAwIDAgMCA0OCA0OGg0MTZhNDggNDggMCAwIDAgNDgtNDhWMTEyYTQ4IDQ4IDAgMCAwLTQ4LTQ4ek0yNTAuNTggMzUyaC0xNi45NGExNiAxNiAwIDAgMS0xNS4xMi0xMC43NUwyMTEuMTUgMzIwaC03MC4yOWwtNy4zOCAyMS4yNUExNiAxNiAwIDAgMSAxMTguMzYgMzUyaC0xNi45NGExNiAxNiAwIDAgMS0xNS4xMi0yMS4yNUwxNDAgMTc2LjEyQTI0IDI0IDAgMCAxIDE2Mi42NyAxNjBoMjYuNjZBMjQgMjQgMCAwIDEgMjEyIDE3Ni4xM2w1My42OSAxNTQuNjJBMTYgMTYgMCAwIDEgMjUwLjU4IDM1MnpNNDI0IDMzNmExNiAxNiAwIDAgMS0xNiAxNmgtMTZhMTUuNzQgMTUuNzQgMCAwIDEtMTItNS42OEE3MiA3MiAwIDEgMSAzNTIgMjA4YTcxLjA1IDcxLjA1IDAgMCAxIDI0IDQuNDJWMTc2YTE2IDE2IDAgMCAxIDE2LTE2aDE2YTE2IDE2IDAgMCAxIDE2IDE2eiIgY2xhc3M9ImZhLXNlY29uZGFyeSIvPjxwYXRoIGQ9Ik0yMTIgMTc2LjEzQTI0IDI0IDAgMCAwIDE4OS4zMyAxNjBoLTI2LjY2QTI0IDI0IDAgMCAwIDE0MCAxNzYuMTJMODYuMyAzMzAuNzVBMTYgMTYgMCAwIDAgMTAxLjQyIDM1MmgxNi45NGExNiAxNiAwIDAgMCAxNS4xMi0xMC43NWw3LjM4LTIxLjI1aDcwLjI5bDcuMzcgMjEuMjVBMTYgMTYgMCAwIDAgMjMzLjY0IDM1MmgxNi45NGExNiAxNiAwIDAgMCAxNS4xMS0yMS4yNXpNMTU3LjUyIDI3MkwxNzYgMjE4Ljc4IDE5NC40OCAyNzJ6TTQwOCAxNjBoLTE2YTE2IDE2IDAgMCAwLTE2IDE2djM2LjQyYTcxLjA1IDcxLjA1IDAgMCAwLTI0LTQuNDIgNzIgNzIgMCAxIDAgMjggMTM4LjMyIDE1Ljc0IDE1Ljc0IDAgMCAwIDEyIDUuNjhoMTZhMTYgMTYgMCAwIDAgMTYtMTZWMTc2YTE2IDE2IDAgMCAwLTE2LTE2em0tNTYgMTQ0YTI0IDI0IDAgMSAxIDI0LTI0IDI0IDI0IDAgMCAxLTI0IDI0eiIgY2xhc3M9ImZhLXByaW1hcnkiLz48L3N2Zz4=
-// @supportURL   https://gist.github.com/robfrawley/74ec9d1be237bc5acfff0b57d1849725#new_comment_field
+// @supportURL   https://github.com/robfrawley/toolarmy-community-fixes/issues
 // ==/UserScript==
 
 (function(jq) {
     'use strict';
 
-    /* user-facing configuration variables */
+    /**
+     * configuration variables
+     */
+
+    // user-facing configuration variables
 
     const stylingDarkerEnable = true;
 
-    /* internal-use configuration variables */
+    // internal-use configuration variables
 
-    const verbosityLevelActive = 'none';
+    const verbosityLevelActive = 'warn';
 
-    /* injected assets */
+    // injected assets
 
-    const mailIconSvgImage = '<svg width="34" height="24" viewBox="0 0 34 23.944" xmlns="http://www.w3.org/2000/svg"> <path class="cls-1" d="m34,1.954v19.995c-.032.042-.075.08-.095.127-.396.938-1.065,1.563-2.086,1.79-.035.008-.061.052-.091.079h-.126c-.009-.035-.017-.071-.041-.166-.025.094-.034.13-.043.166H2.567c-.077-.094-.164-.161-.297-.117-.165-.045-.341-.068-.493-.14-.8-.377-1.314-1.006-1.602-1.825-.002-.124-.006-.247-.007-.371,0-.129.016-.267-.169-.291C0,21.131,0,21.062,0,20.993c.048-.04.096-.081.144-.121-.048-.029-.096-.058-.144-.087,0-6.042,0-12.083,0-18.125.028-.037.067-.07.081-.111.098-.304.148-.632.294-.912C.788.845,1.391.265,2.329.114,2.399.103,2.46.039,2.525,0c.084,0,.168,0,.252,0h.168C12.526,0,22.106,0,31.686,0c.003.019.006.037.008.056.155.041.313.071.463.124.746.261,1.288.747,1.632,1.452.056.114.14.215.21.323ZM2.186,1.36c-.004.021-.008.042-.013.063.08.074.158.149.24.222.338.301.677.6,1.016.901,3.04,2.695,6.08,5.391,9.121,8.085,1.455,1.289,2.912,2.577,4.365,3.868.124.11.214.119.339.005.381-.348.77-.687,1.156-1.03,2.075-1.841,4.151-3.682,6.225-5.524,1.262-1.12,2.52-2.244,3.783-3.362,1.132-1.003,2.269-2.001,3.402-3.003.048-.043.077-.106.115-.16-.058-.031-.113-.084-.173-.091-.29-.032-.581-.072-.872-.072-8.5-.005-16.999-.006-25.499-.005-.939,0-1.877.018-2.816.034-.13.002-.258.045-.388.069Zm-.107,21.148c.166.056.299.13.438.143.34.031.682.045,1.023.045,9.283,0,18.567-.001,27.85-.009.173,0,.349-.069.519-.118.123-.036.149-.1.047-.208-.845-.898-1.683-1.801-2.527-2.7-1.306-1.392-2.615-2.78-3.92-4.172-1.047-1.117-2.091-2.236-3.137-3.354-.093-.099-.187-.198-.284-.3-.137.113-.258.208-.373.309-1.374,1.212-2.746,2.427-4.122,3.636-.436.383-.635.342-1.011.007-1.067-.95-2.137-1.897-3.207-2.844-.421-.373-.844-.744-1.284-1.131-3.338,3.566-6.66,7.115-10.012,10.697Zm30.747-.938c.024,0,.048-.002.073-.002.03-.31.087-.619.087-.929.005-5.797.004-11.593.002-17.39,0-.192-.018-.385-.045-.575-.017-.121-.065-.238-.111-.4-3.316,2.939-6.59,5.841-9.875,8.754,3.299,3.524,6.584,7.034,9.869,10.543Zm-31.559.046c.145-.139.249-.228.342-.327,1.924-2.054,3.847-4.108,5.769-6.163,1.217-1.302,2.429-2.609,3.652-3.905.142-.151.139-.232-.012-.364-1.13-.995-2.253-1.997-3.38-2.996-1.533-1.36-3.067-2.72-4.6-4.08-.517-.458-1.034-.915-1.55-1.374-.124-.111-.204-.118-.228.075-.021.169-.078.337-.078.505-.003,6.034-.002,12.069.003,18.103,0,.155.047.311.082.527Z"/> <path class="cls-1" d="m.176,21.863c-.059-.013-.117-.026-.176-.038,0-.208,0-.416,0-.624.185.024.168.162.169.291,0,.124.004.247.007.371Z"/> <path class="cls-1" d="m2.272,23.944c0-.039-.001-.078-.002-.117.132-.044.22.023.297.117h-.295Z"/> <path class="cls-1" d="m0,20.785c.048.029.096.058.144.087-.048.04-.096.081-.144.121,0-.069,0-.139,0-.208Z"/> <path class="cls-1" d="m31.517,23.944c.009-.036.019-.071.043-.166.024.095.032.13.041.166h-.084Z"/> <path class="cls-1" d="m31.812,0c-.039.019-.079.037-.118.056-.003-.019-.006-.037-.008-.056.042,0,.084,0,.126,0Z"/></svg>';
+    const mailIconSvgImage = '<svg viewBox="0 0 34 23.944" xmlns="http://www.w3.org/2000/svg"><path d="m34,1.954v19.995c-.032.042-.075.08-.095.127-.396.938-1.065,1.563-2.086,1.79-.035.008-.061.052-.091.079h-.126c-.009-.035-.017-.071-.041-.166-.025.094-.034.13-.043.166H2.567c-.077-.094-.164-.161-.297-.117-.165-.045-.341-.068-.493-.14-.8-.377-1.314-1.006-1.602-1.825-.002-.124-.006-.247-.007-.371,0-.129.016-.267-.169-.291C0,21.131,0,21.062,0,20.993c.048-.04.096-.081.144-.121-.048-.029-.096-.058-.144-.087,0-6.042,0-12.083,0-18.125.028-.037.067-.07.081-.111.098-.304.148-.632.294-.912C.788.845,1.391.265,2.329.114,2.399.103,2.46.039,2.525,0c.084,0,.168,0,.252,0h.168C12.526,0,22.106,0,31.686,0c.003.019.006.037.008.056.155.041.313.071.463.124.746.261,1.288.747,1.632,1.452.056.114.14.215.21.323ZM2.186,1.36c-.004.021-.008.042-.013.063.08.074.158.149.24.222.338.301.677.6,1.016.901,3.04,2.695,6.08,5.391,9.121,8.085,1.455,1.289,2.912,2.577,4.365,3.868.124.11.214.119.339.005.381-.348.77-.687,1.156-1.03,2.075-1.841,4.151-3.682,6.225-5.524,1.262-1.12,2.52-2.244,3.783-3.362,1.132-1.003,2.269-2.001,3.402-3.003.048-.043.077-.106.115-.16-.058-.031-.113-.084-.173-.091-.29-.032-.581-.072-.872-.072-8.5-.005-16.999-.006-25.499-.005-.939,0-1.877.018-2.816.034-.13.002-.258.045-.388.069Zm-.107,21.148c.166.056.299.13.438.143.34.031.682.045,1.023.045,9.283,0,18.567-.001,27.85-.009.173,0,.349-.069.519-.118.123-.036.149-.1.047-.208-.845-.898-1.683-1.801-2.527-2.7-1.306-1.392-2.615-2.78-3.92-4.172-1.047-1.117-2.091-2.236-3.137-3.354-.093-.099-.187-.198-.284-.3-.137.113-.258.208-.373.309-1.374,1.212-2.746,2.427-4.122,3.636-.436.383-.635.342-1.011.007-1.067-.95-2.137-1.897-3.207-2.844-.421-.373-.844-.744-1.284-1.131-3.338,3.566-6.66,7.115-10.012,10.697Zm30.747-.938c.024,0,.048-.002.073-.002.03-.31.087-.619.087-.929.005-5.797.004-11.593.002-17.39,0-.192-.018-.385-.045-.575-.017-.121-.065-.238-.111-.4-3.316,2.939-6.59,5.841-9.875,8.754,3.299,3.524,6.584,7.034,9.869,10.543Zm-31.559.046c.145-.139.249-.228.342-.327,1.924-2.054,3.847-4.108,5.769-6.163,1.217-1.302,2.429-2.609,3.652-3.905.142-.151.139-.232-.012-.364-1.13-.995-2.253-1.997-3.38-2.996-1.533-1.36-3.067-2.72-4.6-4.08-.517-.458-1.034-.915-1.55-1.374-.124-.111-.204-.118-.228.075-.021.169-.078.337-.078.505-.003,6.034-.002,12.069.003,18.103,0,.155.047.311.082.527Z"/><path d="m.176,21.863c-.059-.013-.117-.026-.176-.038,0-.208,0-.416,0-.624.185.024.168.162.169.291,0,.124.004.247.007.371Z"/><path d="m2.272,23.944c0-.039-.001-.078-.002-.117.132-.044.22.023.297.117h-.295Z"/><path d="m0,20.785c.048.029.096.058.144.087-.048.04-.096.081-.144.121,0-.069,0-.139,0-.208Z"/><path d="m31.517,23.944c.009-.036.019-.071.043-.166.024.095.032.13.041.166h-.084Z"/><path d="m31.812,0c-.039.019-.079.037-.118.056-.003-.019-.006-.037-.008-.056.042,0,.084,0,.126,0Z"/></svg>';
 
-    /* class declarations  */
+
+    /**
+     * class declarations
+     */
+
+    class Normalizer {
+        static trimArrayValues(array) {
+            return array.map((value) => String(value).trim());
+        }
+
+        static toArray(value) {
+            return Array.isArray(value) ? value : Array(value);
+        }
+
+        static toString(value, ...args) {
+            try {
+                value = typeof value === 'function' ? value(...args) : value;
+            } catch {
+                value = undefined;
+            }
+
+            return String(typeof value === 'undefined' ? '' : value);
+        }
+    }
 
     class ConsoleLogger {
+        _levelsAvail = [ 'none', 'fail', 'warn', 'info', ];
+
         constructor(level) {
-            this._levelsAvail = [ 'none', 'crit', 'warn', 'info', ];
             this._levelActive = this._normalizeLevelToIndex(level);
         }
 
-        log(level, ...values) {
-            if (this.isVerbosityLevel(level)) {
-                values.unshift(
-                    `[${this._normalizeLevelToTitle(level).toUpperCase()}]`
-                );
-
-                console.log(...values);
+        log(level, ...outputs) {
+            if (this._logWithVerbosityLevel(level)) {
+                outputs.unshift(`[${this._normalizeLevelToTitle(level).toUpperCase()}]`);
+                console.log(...outputs);
             }
         }
 
-        info(...values) {
-            this.log('info', ...values);
+        info(...outputs) {
+            this.log('info', ...outputs);
         }
 
-        warn(...values) {
-            this.log('warn', ...values);
+        warn(...outputs) {
+            this.log('warn', ...outputs);
         }
 
-        fail(...values) {
-            this.log('fail', ...values);
+        fail(...outputs) {
+            this.log('fail', ...outputs);
         }
 
-        isVerbosityLevel(level) {
+        _logWithVerbosityLevel(level) {
             const levelCheck = this._normalizeLevelToIndex(level);
 
             return this._levelActive >= levelCheck
@@ -120,17 +145,7 @@
         }
 
         _sanitizeInput(value) {
-            return String(
-                this._stringifyInput(value)
-            ).trim().toLowerCase();
-        }
-
-        _stringifyInput(value) {
-            try {
-                value = typeof value == 'function' ? value(this) : value;
-            } catch {}
-
-            return String(value = typeof value == 'undefined' ? '' : value);
+            return Normalizer.toString(value, this).trim().toLowerCase();
         }
     }
 
@@ -139,10 +154,6 @@
             this._selectors = this._normalizeSelectorsInput(selectors);
             this._stylesMap = this._normalizeStylesSetInput(stylesSet);
             this._prettyOut = prettyOut;
-        }
-
-        getSelectors() {
-            return this._selectors;
         }
 
         mergeStyleSelector(mergingStyleSelector, inclusiveCheck = false) {
@@ -169,10 +180,6 @@
             return this._stylesMap;
         }
 
-        isPrettyOut() {
-            return this._prettyOut;
-        }
-
         stringify() {
             let selectors = this.stringifySelectors();
             let styleDefs = this._prettyOut
@@ -183,8 +190,8 @@
         }
 
         stringifySelectors() {
-            return this._selectors.join(
-                this._prettyOut ? ',\n' : ', '
+            return StyleSelector.selectorArrayToString(
+                this._selectors, this._prettyOut ? ',\n' : ', '
             );
         }
 
@@ -194,18 +201,16 @@
             }).join(this._prettyOut ? '\n' : ' ');
         }
 
+        static selectorArrayToString(selectors, glue = ', ') {
+            return Normalizer.trimArrayValues(selectors).join(glue);
+        }
+
         _normalizeSelectorsInput(value) {
-            return this._toArray(value);
+            return Normalizer.trimArrayValues(Normalizer.toArray(value));
         }
 
         _normalizeStylesSetInput(value) {
-            return this._toArray(value).filter((style) => {
-                return style.isValid();
-            });
-        }
-
-        _toArray(value) {
-            return Array.isArray(value) ? value : Array(value)
+            return Normalizer.toArray(value).filter((style) => style.isValid());
         }
     }
 
@@ -227,7 +232,7 @@
             let currentStyleList = this._styleList;
             let mergingStyleList = mergingStyleConfig.getStyleList();
 
-            this._styleType += `-${mergingStyleConfig.getStyleType()}`;
+            this._styleType += `+${mergingStyleConfig.getStyleType()}`;
             this._styleList = [...currentStyleList.map((currentStyleSelector) => {
                 for (let i = 0; i < mergingStyleList.length; i++) {
                     let mergingStyleSelector = mergingStyleList[i];
@@ -257,7 +262,10 @@
         }
     }
 
-    /* class instance declarations */
+
+    /**
+     * class instance declarations
+     */
 
     const styleNormal = new StyleConfigNormal([
         new StyleSelector('.fb-navigation-icons a.navbar-dm-icon', [
@@ -777,28 +785,35 @@
 
     const log = new ConsoleLogger(verbosityLevelActive);
 
-    /* setup function definitions */
 
-    const setupPageEventPostsExpand = (selector, eventType = 'dblclick') => {
-        jq(selector).each((index, panel) => {
-            const panelElement = jq(panel);
+    /**
+     * setup function definitions
+     */
 
-            log.info(`(INIT) Posts expand: attaching "${eventType}" event to:`, panelElement);
+    const setupPageEventPostsExpand = (selectorList, eventType = 'dblclick') => {
+        const postsSelectorList = StyleSelector.selectorArrayToString(
+            selectorList.map((selector) => `${selector} .post-panel`)
+        );
+
+        jq(postsSelectorList).each((index, panel) => {
+            panel = jq(panel);
+
+            log.info(`(INIT) Posts expand: attaching "${eventType}" event to:`, panel);
 
             try {
-                panelElement.unbind(eventType);
+                panel.unbind(eventType);
             } catch(e) {
-                log.info('(INIT) Posts expand: unable to unbind event:', e);
+                log.warn('(INIT) Posts expand: unable to unbind event:', e);
             } finally {
-                panelElement.bind(eventType, (event) => {
+                panel.bind(eventType, (event) => {
                     try {
-                        let targetElement = jq(event.currentTarget);
-                        let buttonElement = targetElement.find('> .post-footer > .comment > i');
+                        let target = jq(event.currentTarget);
+                        let button = target.find('> .post-footer > .comment > i');
 
-                        log.info('(EVNT) Posts expand: triggered event element:', targetElement);
-                        log.info('(EVNT) Posts expand: clicking button element:', buttonElement);
+                        log.info('(EVNT) Posts expand: triggered event element:', target);
+                        log.info('(EVNT) Posts expand: clicking button element:', button);
 
-                        buttonElement.click();
+                        button.click();
                     } catch(e) {
                         log.fail('(EVNT) Posts expand: failed to handle event:', e);
                     }
@@ -807,26 +822,46 @@
         });
     };
 
-    const setupPageEventModalCloses = (selector, eventType = 'dblclick') => {
-        jq(selector).each((index, modal) => {
-            const modalElement = jq(modal);
+    const setupObserversPostsExpand = (selectorList) => {
+        try {
+            const pagePostsObserver = new MutationObserver(() => {
+                setupPageEventPostsExpand();
+            });
 
-            log.info(`(INIT) Modal closes: attaching "${eventType}" event to:`, modalElement);
+            pagePostsObserver.observe(
+                document.querySelector(
+                    StyleSelector.selectorArrayToString(selectorList)
+                ), {
+                    childList : true,
+                    attributes: false,
+                    subtree   : false,
+                }
+            );
+        } catch(e) {
+            log.warn('(INIT) Failed setting up page mutation observers ...', e);
+        }
+    };
+
+    const setupPageEventModalCloses = (selectorList, eventType = 'dblclick') => {
+        jq(StyleSelector.selectorArrayToString(selectorList)).each((index, modal) => {
+            modal = jq(modal);
+
+            log.info(`(INIT) Modal closes: attaching "${eventType}" event to:`, modal);
 
             try {
-                modalElement.unbind(eventType)
+                modal.unbind(eventType)
             } catch(e) {
-                log.info('(INIT) Post double-click expand: unable to unbind event:', e);
+                log.warn('(INIT) Post double-click expand: unable to unbind event:', e);
             } finally {
-                modalElement.bind(eventType, (event) => {
+                modal.bind(eventType, (event) => {
                     try {
-                        let targetElement = jq(event.currentTarget);
-                        let buttonElement = targetElement.find('.modal-dialog button.close');
+                        const target = jq(event.currentTarget);
+                        const button = target.find('.modal-dialog button.close');
 
-                        log.info('(EVNT) Modal closes: triggered event element:', targetElement);
-                        log.info('(EVNT) Modal closes: clicking button element:', buttonElement);
+                        log.info('(EVNT) Modal closes: triggered event element:', target);
+                        log.info('(EVNT) Modal closes: clicking button element:', button);
 
-                        buttonElement.click()
+                        button.click()
                     } catch(e) {
                         log.fail('(EVNT) Modal closes: failed to handle event:', e);
                     }
@@ -836,29 +871,21 @@
     };
 
     const setupPageEvents = () => {
-        const pageModalSelector = '.modal';
-        const pagePostsSelector = '.published-card-section.user-profile-page .post-panels .post-panel, .newfeeds-container .published-card-section.card-section .post-panels .post-panel';
-        const pagePanelSelector = '.published-card-section.user-profile-page .post-panels, .newfeeds-container .published-card-section.card-section .post-panels';
-        const pagePostsObserver = new MutationObserver(() => {
-            setupPageEventPostsExpand(pagePostsSelector);
-        });
+        const modalContainerSelectorList = [
+            '.modal'
+        ];
+        const panelContainerSelectorList = [
+            '.published-card-section.user-profile-page .post-panels',
+            '.newfeeds-container .published-card-section.card-section .post-panels'
+        ];
 
         log.info('(INIT) Setting up page element events ...');
 
-        setupPageEventModalCloses(pageModalSelector);
-        setupPageEventPostsExpand(pagePostsSelector);
+        setupPageEventModalCloses(modalContainerSelectorList);
+        setupPageEventPostsExpand(panelContainerSelectorList);
+        setupObserversPostsExpand(panelContainerSelectorList);
 
         log.info('(INIT) Setting up page mutation observers ...');
-
-        try {
-            pagePostsObserver.observe(document.querySelector(pagePanelSelector), {
-                attributes: false,
-                subtree   : false,
-                childList : true,
-            });
-        } catch(e) {
-            log.warn('(INIT) Failed setting up page mutation observers ...', e);
-        }
     };
 
     const setupPageStyles = () => {
@@ -897,20 +924,24 @@
         setupInjectionsMessagesIcon();
     };
 
-    /* main function definition */
+    
+    /**
+     * invokation of script functions
+     */
 
-    const main = () => {
-        log.info('(MAIN) Executing initialization function ...');
-        setupPageStyles();
-        setupPageEvents();
-        setupInjections();
-        log.info('(MAIN) Completed initialization function ...');
-    };
+    // invoke functions that do not require page load event to fire
 
-    /* call main function on page load event */
+    log.info('(MAIN) Executing initialization functions ...');
+    setupPageStyles();
+    log.info('(MAIN) Completed initialization functions ...');
+
+    // invoke functions that require page load event had been fired
 
     window.addEventListener('load', () => {
-        main();
+        log.info('(LOAD) Executing initialization functions ...');
+        setupPageEvents();
+        setupInjections();
+        log.info('(LOAD) Completed initialization functions ...');
     }, false);
 
 })(window.jQuery);
