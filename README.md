@@ -28,6 +28,8 @@ This is a [Tampermonkey](https://www.tampermonkey.net/) userscript that applies 
 ## New Features
 
 - Full dark-mode styling for the site (can be optionally diabled)
+- Updated post comment styling (also fixed a collection of prior display issues)
+- Auto-like posts functionality added under Profile menu when on Feed or Community page
 
 ## Unresolved Issues
 
