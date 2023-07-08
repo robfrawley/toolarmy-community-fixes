@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tool Army Community Fixes
 // @namespace    https://github.com/robfrawley/toolarmy-community-fixes
-// @version      0.5.2
+// @version      0.6.0
 // @description  A collection of CSS style fixes and JavaScript behavioral changes for the Tool Army website.
 // @author       Rob Frawley 2nd <src@robfrawley.com>
 // @copyright    2023
@@ -34,8 +34,8 @@
     /* class declarations  */
 
     class Normalizer {
-        static trimArrayValues(array) {
-            return array.map((value) => String(value).trim());
+        static trimValueList(array) {
+            return Normalizer.toArray(array).map((value) => String(value).trim());
         }
 
         static toArray(value) {
@@ -104,8 +104,8 @@
 
     class StyleProperty {
         constructor(styleName, styleVals, important = true) {
-            this._styleName = this._sanitizeInput(styleName);
-            this._styleVals = this._sanitizeInput(styleVals);
+            this._styleName = this._normalizeStyleNameInput(styleName);
+            this._styleVals = this._normalizeStyleValsInput(styleVals);
             this._important = important ? true : false;
         }
 
@@ -133,31 +133,57 @@
         }
 
         mergeStyleProperty(mergingStyleProperty) {
+            if (this._styleName !== mergingStyleProperty.getStyleName()) {
+                throw new Error(`Merged style property names do not match: ${this._styleName} !== ${mergingStyleProperty.getStyleName()}`);
+            }
+
             this._styleVals = mergingStyleProperty.getStyleVals();
             this._important = mergingStyleProperty.isStyleImportant();
 
             return this;
         }
 
-        _sanitizeInput(value) {
+        _normalizeStyleNameInput(value) {
+            return this._normalizeInput(value);
+        }
+
+        _normalizeStyleValsInput(value) {
+            return this._normalizeInput(value)
+                .replace(/;$/, '')
+                .replace(/ ?!important$/, '');
+        }
+
+        _normalizeInput(value) {
             return Normalizer.toString(value, this).trim().toLowerCase();
         }
     }
 
+    class StylePropertyImpt extends StyleProperty {
+        constructor(styleName, styleVals) {
+            super(styleName, styleVals, true);
+        }
+    }
+
+    class StylePropertyNorm extends StyleProperty {
+        constructor(styleName, styleVals) {
+            super(styleName, styleVals, false);
+        }
+    }
+
     class StyleSelector {
-        constructor(selectors, stylesSet, prettyOut = false) {
+        constructor(selectors, propsList, prettyOut = false) {
             this._selectors = this._normalizeSelectorsInput(selectors);
-            this._stylesMap = this._normalizeStylesSetInput(stylesSet);
+            this._propsList = this._normalizePropsListInput(propsList);
             this._prettyOut = prettyOut;
         }
 
         mergeStyleSelector(mergingStyleSelector, inclusiveCheck = false) {
-            let currentStyleMap = this.getStyleMap();
-            let mergingStyleMap = mergingStyleSelector.getStyleMap();
+            const currentStyleMap = this.getPropsList();
+            const mergingStyleMap = mergingStyleSelector.getPropsList();
 
-            this._stylesMap = [...currentStyleMap.map((currentStyleProperty) => {
+            this._propsList = [...currentStyleMap.map((currentStyleProperty) => {
                 for (let i = 0; i < mergingStyleMap.length; i++) {
-                    let mergingStyleProperty = mergingStyleMap[i];
+                    const mergingStyleProperty = mergingStyleMap[i];
 
                     if (currentStyleProperty.getStyleName() === mergingStyleProperty.getStyleName()) {
                         currentStyleProperty.mergeStyleProperty(mergingStyleProperty);
@@ -171,40 +197,40 @@
             return this;
         }
 
-        getStyleMap() {
-            return this._stylesMap;
+        getPropsList() {
+            return this._propsList;
         }
 
         stringify() {
-            let selectors = this.stringifySelectors();
-            let styleDefs = this._prettyOut
-                ? `\n${this.stringifyStylesSet()}\n`
-                : this.stringifyStylesSet();
+            const selectors = this.stringifySelectors();
+            const styleDefs = this._prettyOut
+                ? `\n${this.stringifyPropsList()}\n`
+                : this.stringifyPropsList();
 
             return `${selectors} { ${styleDefs} }`
         }
 
         stringifySelectors() {
-            return StyleSelector.selectorArrayToString(
+            return StyleSelector.selectorsToString(
                 this._selectors, this._prettyOut ? ',\n' : ', '
             );
         }
 
-        stringifyStylesSet() {
-            return this._stylesMap.map((style) => {
+        stringifyPropsList() {
+            return this._propsList.map((style) => {
                 return this._prettyOut ? `\t${style.stringify()};` : `${style.stringify()};`;
             }).join(this._prettyOut ? '\n' : ' ');
         }
 
-        static selectorArrayToString(selectors, glue = ', ') {
-            return Normalizer.trimArrayValues(selectors).join(glue);
+        static selectorsToString(selectors, glue = ', ') {
+            return Normalizer.trimValueList(selectors).join(glue);
         }
 
         _normalizeSelectorsInput(value) {
-            return Normalizer.trimArrayValues(Normalizer.toArray(value));
+            return Normalizer.trimValueList(Normalizer.toArray(value));
         }
 
-        _normalizeStylesSetInput(value) {
+        _normalizePropsListInput(value) {
             return Normalizer.toArray(value).filter((style) => style.isValid());
         }
     }
@@ -224,13 +250,13 @@
         }
 
         mergeStyleConfig(mergingStyleConfig, overwrite = true) {
-            let currentStyleList = this._styleList;
-            let mergingStyleList = mergingStyleConfig.getStyleList();
+            const currentStyleList = this._styleList;
+            const mergingStyleList = mergingStyleConfig.getStyleList();
 
             this._styleType += `+${mergingStyleConfig.getStyleType()}`;
             this._styleList = [...currentStyleList.map((currentStyleSelector) => {
                 for (let i = 0; i < mergingStyleList.length; i++) {
-                    let mergingStyleSelector = mergingStyleList[i];
+                    const mergingStyleSelector = mergingStyleList[i];
 
                     if (currentStyleSelector.stringifySelectors() === mergingStyleSelector.stringifySelectors()) {
                         currentStyleSelector.mergeStyleSelector(mergingStyleSelector);
@@ -261,131 +287,131 @@
 
     const styleNormal = new StyleConfigNormal([
         new StyleSelector('.fb-navigation-icons a.navbar-dm-icon', [
-            new StyleProperty('margin-right', '4px'),
+            new StylePropertyImpt('margin-right', '4px'),
         ]),
         new StyleSelector('.fb-navigation-icons > ul > li:hover a svg', [
-            new StyleProperty('filter', 'brightness(0) saturate(100%) invert(93%) sepia(0%) saturate(1910%) hue-rotate(339deg) brightness(120%) contrast(75%)'),
+            new StylePropertyImpt('filter', 'brightness(0) saturate(100%) invert(93%) sepia(0%) saturate(1910%) hue-rotate(339deg) brightness(120%) contrast(75%)'),
         ]),
         new StyleSelector('.fan-wall.activity-panel .fan-wall-post.discussions', [
-            new StyleProperty('border', '4px solid rgb(0 0 0 / 50%)'),
-            new StyleProperty('border-left', 'none'),
-            new StyleProperty('border-right', 'none'),
+            new StylePropertyImpt('border', '4px solid rgb(0 0 0 / 50%)'),
+            new StylePropertyImpt('border-left', 'none'),
+            new StylePropertyImpt('border-right', 'none'),
         ]),
         new StyleSelector('.fan-wall.activity-panel .fan-wall-post.discussions > li', [
-            new StyleProperty('background-color', 'rgb(0 0 0 / 20%)'),
-            new StyleProperty('border-left', '4px solid rgb(0 0 0 / 25%)'),
-            new StyleProperty('border-right', '4px solid rgb(0 0 0 / 25%)'),
-            new StyleProperty('margin-bottom', '2px'),
-            new StyleProperty('padding', '1em'),
+            new StylePropertyImpt('background-color', 'rgb(0 0 0 / 20%)'),
+            new StylePropertyImpt('border-left', '4px solid rgb(0 0 0 / 25%)'),
+            new StylePropertyImpt('border-right', '4px solid rgb(0 0 0 / 25%)'),
+            new StylePropertyImpt('margin-bottom', '2px'),
+            new StylePropertyImpt('padding', '1em'),
         ]),
         new StyleSelector('.fan-wall.activity-panel .fan-wall-post.discussions > li:first-child', [
-            new StyleProperty('margin-top', '2px'),
+            new StylePropertyImpt('margin-top', '2px'),
         ]),
         new StyleSelector([
             '.fan-wall.activity-panel .fan-wall-post.discussions > li:hover',
             '.fan-wall.activity-panel .fan-wall-post.discussions > li:focus',
         ], [
-            new StyleProperty('background-color', 'rgb(0 0 0 / 22.5%)'),
+            new StylePropertyImpt('background-color', 'rgb(0 0 0 / 22.5%)'),
         ]),
         new StyleSelector('.fan-wall.activity-panel .fan-wall-post.discussions > li.un-read', [
-            new StyleProperty('background-color', 'rgb(142 104 42 / 50%)'),
-            new StyleProperty('border-left-color', 'rgb(142 104 42 / 95%)'),
-            new StyleProperty('border-right-color', 'rgb(142 104 42 / 95%)'),
+            new StylePropertyImpt('background-color', 'rgb(142 104 42 / 50%)'),
+            new StylePropertyImpt('border-left-color', 'rgb(142 104 42 / 95%)'),
+            new StylePropertyImpt('border-right-color', 'rgb(142 104 42 / 95%)'),
         ]),
         new StyleSelector([
             '.fan-wall.activity-panel .fan-wall-post.discussions > li.un-read:hover',
             '.fan-wall.activity-panel .fan-wall-post.discussions > li.un-read:focus',
         ], [
-            new StyleProperty('background-color', 'rgb(142 104 42 / 55%)'),
+            new StylePropertyImpt('background-color', 'rgb(142 104 42 / 55%)'),
         ]),
         new StyleSelector('.fan-wall.activity-panel .fan-wall-post.discussions > li .profile-pic', [
-            new StyleProperty('margin', '1em 1.5em 1em 0.5em'),
-            new StyleProperty('border', '2px solid rgb(255 255 255 / 80%)'),
-            new StyleProperty('box-shadow', '0 0 0 4px rgb(0 0 0 / 40%)'),
+            new StylePropertyImpt('margin', '1em 1.5em 1em 0.5em'),
+            new StylePropertyImpt('border', '2px solid rgb(255 255 255 / 80%)'),
+            new StylePropertyImpt('box-shadow', '0 0 0 4px rgb(0 0 0 / 40%)'),
         ]),
         new StyleSelector('.fan-wall.activity-panel .fan-wall-post.discussions > li.un-read .profile-pic', [
-            new StyleProperty('box-shadow', '0 0 0 4px rgb(39 31 19 / 80%)'),
+            new StylePropertyImpt('box-shadow', '0 0 0 4px rgb(39 31 19 / 80%)'),
         ]),
         new StyleSelector('.fan-wall.activity-panel .fan-wall-post.discussions > li .content', [
-            new StyleProperty('border-bottom', 'none'),
-            new StyleProperty('margin', '0'),
-            new StyleProperty('padding', '1.0em 0 1.0em 0'),
+            new StylePropertyImpt('border-bottom', 'none'),
+            new StylePropertyImpt('margin', '0'),
+            new StylePropertyImpt('padding', '1.0em 0 1.0em 0'),
         ]),
         new StyleSelector('.fan-wall.activity-panel .fan-wall-post.discussions > li p:first-child', [
-            new StyleProperty('font-size', '1.2em'),
-            new StyleProperty('margin-bottom', '0.25em'),
+            new StylePropertyImpt('font-size', '1.2em'),
+            new StylePropertyImpt('margin-bottom', '0.25em'),
         ]),
         new StyleSelector('.fan-wall.activity-panel .fan-wall-post.discussions > li.un-read p:first-child', [
-            new StyleProperty('font-weight', '500'),
+            new StylePropertyImpt('font-weight', '500'),
         ]),
         new StyleSelector('.fan-wall.activity-panel .fan-wall-post.discussions > li .content .time', [
-            new StyleProperty('float', 'none'),
-            new StyleProperty('margin', '0'),
-            new StyleProperty('padding', '0'),
+            new StylePropertyImpt('float', 'none'),
+            new StylePropertyImpt('margin', '0'),
+            new StylePropertyImpt('padding', '0'),
         ]),
         new StyleSelector('.upper-heading .comment-reply-head .vote-btn.notification-view-post', [
-            new StyleProperty('color', 'rgb(255 255 255 / 50%)'),
+            new StylePropertyImpt('color', 'rgb(255 255 255 / 50%)'),
         ]),
         new StyleSelector([
             '.fb_layout.modal-open .modal-content .card-data .full-detail .vote-btn:hover',
             '.fb_layout.modal-open .modal-content .card-data .full-detail .vote-btn:focus',
         ], [
-            new StyleProperty('border-color', 'rgb(255 255 255 / 70%)'),
-            new StyleProperty('background-color', 'rgb(255 255 255 / 5%)'),
-            new StyleProperty('color', 'rgb(255 255 255 / 70%)'),
+            new StylePropertyImpt('border-color', 'rgb(255 255 255 / 70%)'),
+            new StylePropertyImpt('background-color', 'rgb(255 255 255 / 5%)'),
+            new StylePropertyImpt('color', 'rgb(255 255 255 / 70%)'),
         ]),
         new StyleSelector('.previous-comment-btn span.previous-comment-link', [
-            new StyleProperty('color', 'rgb(255 255 255 / 30%)'),
+            new StylePropertyImpt('color', 'rgb(255 255 255 / 30%)'),
         ]),
         new StyleSelector([
             '.previous-comment-btn span.previous-comment-link:hover',
             '.previous-comment-btn span.previous-comment-link:active ',
         ], [
-            new StyleProperty('color', 'rgb(255 255 255 / 50%)'),
+            new StylePropertyImpt('color', 'rgb(255 255 255 / 50%)'),
         ]),
         new StyleSelector('.fb_layout .comment-form-outer .messages-box', [
-            new StyleProperty('padding', '10px'),
+            new StylePropertyImpt('padding', '10px'),
         ]),
         new StyleSelector('#myModal .modal-content .card-data .comment-form-outer .messages-box', [
-            new StyleProperty('padding-right', '4px'),
+            new StylePropertyImpt('padding-right', '4px'),
         ]),
         new StyleSelector('.messages-box .showPlaceholder:before', [
-            new StyleProperty('cursor', 'text'),
+            new StylePropertyImpt('cursor', 'text'),
         ]),
         new StyleSelector([
             '.fb_layout .messages-box textarea',
             '.fb_layout .messages-box #makemojifield',
         ], [
-            new StyleProperty('max-height', 'none'),
-            new StyleProperty('border', '2px solid rgb(0 0 0 / 75%)'),
-            new StyleProperty('border-radius', '3px'),
-            new StyleProperty('box-shadow', 'inset 0 0 8px 1px rgb(255 255 255 / 90%)'),
-            new StyleProperty('cursor', 'text'),
-            new StyleProperty('padding', '8px 10px 5px 10px'),
-            new StyleProperty('background', 'rgb(255 255 255 / 80%)'),
+            new StylePropertyImpt('max-height', 'none'),
+            new StylePropertyImpt('border', '2px solid rgb(0 0 0 / 75%)'),
+            new StylePropertyImpt('border-radius', '3px'),
+            new StylePropertyImpt('box-shadow', 'inset 0 0 8px 1px rgb(255 255 255 / 90%)'),
+            new StylePropertyImpt('cursor', 'text'),
+            new StylePropertyImpt('padding', '8px 10px 5px 10px'),
+            new StylePropertyImpt('background', 'rgb(255 255 255 / 80%)'),
         ]),
         new StyleSelector([
             '.fb_layout .messages-box textarea:focus',
             '.fb_layout .messages-box #makemojifield:focus',
         ], [
-            new StyleProperty('background', 'rgb(255 255 255 / 98%)'),
+            new StylePropertyImpt('background', 'rgb(255 255 255 / 98%)'),
         ]),
         new StyleSelector([
             '.fb_layout .newfeeds-right .add-forum .form-control',
             '.fb_layout .newfeeds-right .add-forum #makemojifield',
         ], [
-            new StyleProperty('height', 'auto'),
+            new StylePropertyImpt('height', 'auto'),
         ]),
         new StyleSelector([
             '.fb_layout .comment-form-outer .messages-box .icon-cam_icon',
             '.fb_layout .modal-content .comment-form-outer .messages-box .icon-cam_icon'
         ], [
-            new StyleProperty('top', '11px'),
-            new StyleProperty('right', '12px'),
-            new StyleProperty('font-size', '18px'),
-            new StyleProperty('font-weight', 'bold'),
-            new StyleProperty('color', 'rgb(61 60 59 / 50%)'),
-            new StyleProperty('text-shadow', '0 0 9px rgb(255 255 255)'),
+            new StylePropertyImpt('top', '11px'),
+            new StylePropertyImpt('right', '12px'),
+            new StylePropertyImpt('font-size', '18px'),
+            new StylePropertyImpt('font-weight', 'bold'),
+            new StylePropertyImpt('color', 'rgb(61 60 59 / 50%)'),
+            new StylePropertyImpt('text-shadow', '0 0 9px rgb(255 255 255)'),
         ]),
         new StyleSelector([
             '.fb_layout .comment-form-outer .messages-box .icon-cam_icon:hover',
@@ -393,158 +419,122 @@
             '.fb_layout .modal-content .comment-form-outer .messages-box .icon-cam_icon:hover',
             '.fb_layout .modal-content .comment-form-outer .messages-box .icon-cam_icon:focus',
         ], [
-            new StyleProperty('color', 'rgb(61 60 59 / 100%)'),
-        ]),
-        new StyleSelector('.fan-wall-post.discussions .act-drop', [
+            new StylePropertyImpt('color', 'rgb(61 60 59 / 100%)'),
         ]),
         new StyleSelector('.fan-wall-post.discussions .act-drop .dropdown', [
-            new StyleProperty('top', '-50%'),
+            new StylePropertyImpt('top', '-50%'),
         ]),
         new StyleSelector('.fan-wall-post.discussions .act-drop .dropdown .option-btn', [
-            new StyleProperty('color', 'rgb(142 104 42)'),
-            new StyleProperty('background-color', 'rgb(255 255 255 / 25%)'),
-            new StyleProperty('padding', '6px 8px 6px 6px'),
+            new StylePropertyImpt('color', 'rgb(142 104 42)'),
+            new StylePropertyImpt('background-color', 'rgb(255 255 255 / 25%)'),
+            new StylePropertyImpt('padding', '6px 8px 6px 6px'),
         ]),
         new StyleSelector([
             '.fan-wall-post.discussions .act-drop .dropdown .option-btn:hover',
             '.fan-wall-post.discussions .act-drop .dropdown .option-btn:focus',
         ], [
-            new StyleProperty('color', 'rgb(0 0 0 / 70%)'),
-            new StyleProperty('background-color', 'rgb(255 255 255 / 60%)'),
-        ]),
-        new StyleSelector([
-            'body.fb_layout .act-drop .dropdown ul',
-            'body.fb_layout .share.dropup ul'
-        ], [
-            new StyleProperty('padding', '0'),
-            new StyleProperty('box-shadow', '0 0 12px 2px rgb(0 0 0 / 20%)'),
-            new StyleProperty('border', '1px solid rgb(142 104 42)'),
-        ]),
-        new StyleSelector([
-            'body.fb_layout .act-drop .dropdown ul li',
-            'body.fb_layout .share.dropup ul li',
-        ], [
-            new StyleProperty('border-bottom', '1px solid rgb(142 104 42 / 50%)'),
-        ]),
-        new StyleSelector([
-            'body.fb_layout .act-drop .dropdown ul li:last-child',
-            'body.fb_layout .share.dropup ul li:last-child',
-        ], [
-            new StyleProperty('border-bottom', 'none'),
-        ]),
-        new StyleSelector([
-            'body.fb_layout .act-drop .dropdown ul li:first-child a',
-            'body.fb_layout .share.dropup ul li:first-child a',
-        ], [
-            new StyleProperty('border-top-left-radius', '4px'),
-            new StyleProperty('border-top-right-radius', '4px'),
-        ]),
-        new StyleSelector([
-            'body.fb_layout .act-drop .dropdown ul li:last-child a',
-            'body.fb_layout .share.dropup ul li:first-child a',
-        ], [
-            new StyleProperty('border-bottom-left-radius', '4px'),
-            new StyleProperty('border-bottom-right-radius', '4px'),
+            new StylePropertyImpt('color', 'rgb(0 0 0 / 70%)'),
+            new StylePropertyImpt('background-color', 'rgb(255 255 255 / 60%)'),
         ]),
         new StyleSelector([
             'body.fb_layout .act-drop .dropdown ul li a',
             'body.fb_layout .share.dropup ul li a',
         ], [
-            new StyleProperty('padding', '10px 18px'),
-            new StyleProperty('top', 'auto'),
+            new StylePropertyImpt('padding', '10px 18px'),
+            new StylePropertyImpt('top', 'auto'),
         ]),
         new StyleSelector([
             'body.fb_layout .act-drop .dropdown ul li:hover a',
             'body.fb_layout .share.dropup ul li:hover a',
         ], [
-            new StyleProperty('background-color', 'rgb(0 0 0 / 5%)'),
-            new StyleProperty('color', 'rgb(0 0 0)'),
-            new StyleProperty('font-weight', 'bold'),
-            new StyleProperty('text-shadow', '0 0 4px rgb(255 255 255)'),
+            new StylePropertyImpt('background-color', 'rgb(0 0 0 / 5%)'),
+            new StylePropertyImpt('color', 'rgb(0 0 0)'),
+            new StylePropertyImpt('font-weight', 'bold'),
+            new StylePropertyImpt('text-shadow', '0 0 4px rgb(255 255 255)'),
         ]),
         new StyleSelector('body.fb_layout .share.dropup ul li a span', [
-            new StyleProperty('padding-left', '3px'),
+            new StylePropertyImpt('padding-left', '3px'),
         ]),
         new StyleSelector('body.fb_layout .share.dropup ul li a i.fa', [
-            new StyleProperty('bottom', 'auto'),
-            new StyleProperty('color', 'rgb(0 0 0)'),
-            new StyleProperty('opacity', '0.5'),
-            new StyleProperty('padding-right', '0'),
-            new StyleProperty('font-size', '16px'),
-            new StyleProperty('line-height', '14px'),
-            new StyleProperty('width', '20px'),
+            new StylePropertyImpt('bottom', 'auto'),
+            new StylePropertyImpt('color', 'rgb(0 0 0)'),
+            new StylePropertyImpt('opacity', '0.5'),
+            new StylePropertyImpt('padding-right', '0'),
+            new StylePropertyImpt('font-size', '16px'),
+            new StylePropertyImpt('line-height', '14px'),
+            new StylePropertyImpt('width', '20px'),
         ]),
         new StyleSelector('body.fb_layout .share.dropup ul li:hover a i.fa', [
-            new StyleProperty('opacity', '1.0'),
+            new StylePropertyImpt('opacity', '1.0'),
         ]),
         new StyleSelector('body.fb_layout .share.dropup ul li a.copy-link i.fa', [
-            new StyleProperty('height', '12px'),
-            new StyleProperty('bottom', '6px'),
+            new StylePropertyImpt('height', '12px'),
+            new StylePropertyImpt('bottom', '6px'),
         ]),
         new StyleSelector('.fb_layout .comment-content .msg-text', [
-            new StyleProperty('padding-right', '12px'),
+            new StylePropertyImpt('padding-right', '12px'),
         ]),
         new StyleSelector('.pe-none', [
-            new StyleProperty('pointer-events', 'auto'),
+            new StylePropertyImpt('pointer-events', 'auto'),
         ]),
         new StyleSelector('::-webkit-scrollbar', [
-            new StyleProperty('width', '15px'),
-            new StyleProperty('border', '1px solid rgb(0 0 0)'),
+            new StylePropertyImpt('width', '15px'),
+            new StylePropertyImpt('border', '1px solid rgb(0 0 0)'),
         ]),
         new StyleSelector('::-webkit-scrollbar-track', [
-            new StyleProperty('background', 'rgb(28 28 28 / 100%)'),
-            new StyleProperty('border', '1px solid rgb(0 0 0)'),
-            new StyleProperty('border-right', '1px solid rgb(0 0 0)'),
+            new StylePropertyImpt('background', 'rgb(28 28 28 / 100%)'),
+            new StylePropertyImpt('border', '1px solid rgb(0 0 0)'),
+            new StylePropertyImpt('border-right', '1px solid rgb(0 0 0)'),
         ]),
         new StyleSelector('::-webkit-scrollbar-thumb', [
-            new StyleProperty('background', 'rgb(70 70 70 / 100%)'),
-            new StyleProperty('border', '2px solid rgb(0 0 0)'),
-            new StyleProperty('border-right', '2px solid rgb(0 0 0)'),
+            new StylePropertyImpt('background', 'rgb(70 70 70 / 100%)'),
+            new StylePropertyImpt('border', '2px solid rgb(0 0 0)'),
+            new StylePropertyImpt('border-right', '2px solid rgb(0 0 0)'),
         ]),
         new StyleSelector('::-webkit-scrollbar-thumb:hover', [
-            new StyleProperty('background', 'rgb(90 90 90 / 100%)'),
-            new StyleProperty('cursor', 'pointer'),
+            new StylePropertyImpt('background', 'rgb(90 90 90 / 100%)'),
+            new StylePropertyImpt('cursor', 'pointer'),
         ]),
         new StyleSelector('.full-loader', [
-            new StyleProperty('background', 'rgb(0 0 0 / 70%)'),
-            new StyleProperty('cursor', 'wait'),
+            new StylePropertyImpt('background', 'rgb(0 0 0 / 70%)'),
+            new StylePropertyImpt('cursor', 'wait'),
         ]),
         new StyleSelector('.modal-open .modal', [
-            new StyleProperty('background', 'rgb(0 0 0 / 70%)'),
+            new StylePropertyImpt('background', 'rgb(0 0 0 / 70%)'),
         ]),
         new StyleSelector('#load_more', [
-            new StyleProperty('margin-bottom', '36px'),
-            new StyleProperty('padding', '36px 96px'),
-            new StyleProperty('border', '2px solid rgb(255 255 255 / 25%)x'),
+            new StylePropertyImpt('margin-bottom', '36px'),
+            new StylePropertyImpt('padding', '36px 96px'),
+            new StylePropertyImpt('border', '2px solid rgb(255 255 255 / 25%)x'),
         ]),
         new StyleSelector([
             '.upper-heading .comment-reply-head',
             '.upper-heading .only-replies'
         ], [
-            new StyleProperty('margin-right', '25px'),
-            new StyleProperty('padding-right', '0'),
+            new StylePropertyImpt('margin-right', '25px'),
+            new StylePropertyImpt('padding-right', '0'),
         ]),
         new StyleSelector('.modal-dialog .close.close-button-mymodel', [
-            new StyleProperty('top', '0'),
-            new StyleProperty('right', '0'),
-            new StyleProperty('opacity', '0.7'),
+            new StylePropertyImpt('top', '0'),
+            new StylePropertyImpt('right', '0'),
+            new StylePropertyImpt('opacity', '0.7'),
         ]),
         new StyleSelector('.modal-dialog .close.close-button-mymodel:hover', [
-            new StyleProperty('opacity', '1.0'),
+            new StylePropertyImpt('opacity', '1.0'),
         ]),
         new StyleSelector('.modal-content .full-detail', [
-            new StyleProperty('border', '2px solid rgb(131 124 107 / 40%)'),
-            new StyleProperty('border-bottom', 'none'),
-            new StyleProperty('border-radius', '4px'),
+            new StylePropertyImpt('border', '2px solid rgb(131 124 107 / 40%)'),
+            new StylePropertyImpt('border-bottom', 'none'),
+            new StylePropertyImpt('border-radius', '4px'),
         ]),
         new StyleSelector('.loader-background', [
-            new StyleProperty('z-index', 'auto'),
+            new StylePropertyImpt('z-index', 'auto'),
         ]),
         new StyleSelector([
             '.fb_layout .post-panel .post-footer i',
             '.fb_layout .full-detail .left-side .action-area i',
         ], [
-            new StyleProperty('color', 'rgb(255 255 255 / 30%)', false),
+            new StylePropertyNorm('color', 'rgb(255 255 255 / 30%)'),
         ]),
         new StyleSelector([
             '.fb_layout .post-panel .post-footer i:hover',
@@ -552,7 +542,7 @@
             '.fb_layout .full-detail .left-side .action-area i:hover',
             '.fb_layout .full-detail .left-side .action-area i:focus',
         ], [
-            new StyleProperty('color', 'rgb(255 255 255 / 45%)', false),
+            new StylePropertyNorm('color', 'rgb(255 255 255 / 45%)'),
         ]),
         new StyleSelector([
             '.post-panel .post-footer .liked',
@@ -560,7 +550,7 @@
             '.full-detail .left-side .action-area .liked',
             '.full-detail .left-side .action-area i.favorite-highlight',
         ], [
-            new StyleProperty('color', 'rgb(255 255 255 / 60%)'),
+            new StylePropertyImpt('color', 'rgb(255 255 255 / 60%)'),
         ]),
         new StyleSelector([
             '.post-panel .post-footer i.favorite-highlight:hover',
@@ -568,13 +558,13 @@
             '.full-detail .left-side .action-area i.favorite-highlight:hover',
             '.full-detail .left-side .action-area i.favorite-highlight:focus',
         ], [
-            new StyleProperty('color', 'rgb(255 255 255 / 75%)'),
+            new StylePropertyImpt('color', 'rgb(255 255 255 / 75%)'),
         ]),
         new StyleSelector([
             '.like-btn.like-disable[like-type=""] i:hover',
             '.like-btn.like-disable[like-type=""] i:focus',
         ], [
-            new StyleProperty('color', 'rgb(255 255 255 / 30%)'),
+            new StylePropertyImpt('color', 'rgb(255 255 255 / 30%)'),
         ]),
         new StyleSelector([
             '.post-panel .post-footer .like-btn.like-disable[like-type=""]',
@@ -582,38 +572,39 @@
             '.full-detail .left-side .action-area .like-btn.like-disable[like-type=""]',
             '.full-detail .left-side .action-area .like-btn.like-disable[like-type=""] i',
         ], [
-            new StyleProperty('pointer-events', 'none'),
+            new StylePropertyImpt('pointer-events', 'none'),
         ]),
         new StyleSelector([
             '.like-btn.like-disable[like-type=""] .multi-likes',
             '.like-btn.like-disable[like-type=""] .multi-likes',
         ], [
-            new StyleProperty('display', 'none'),
+            new StylePropertyImpt('display', 'none'),
         ]),
         new StyleSelector('.multi-likes', [
-            new StyleProperty('width', 'auto'),
-            new StyleProperty('left', '11px'),
-            new StyleProperty('bottom', '33px'),
+            new StylePropertyImpt('width', 'auto'),
+            new StylePropertyImpt('left', '11px'),
+            new StylePropertyImpt('bottom', '33px'),
         ]),
         new StyleSelector('.full-detail .multi-likes', [
-            new StyleProperty('left', '6px'),
-            new StyleProperty('bottom', '36px'),
+            new StylePropertyImpt('left', '6px'),
+            new StylePropertyImpt('bottom', '36px'),
         ]),
         new StyleSelector('.img-full-mode', [
-            new StyleProperty('height', 'calc(100% - 150px)'),
-            new StyleProperty('width', 'calc(100% - 5px)'),
-            new StyleProperty('top', '70px'),
-            new StyleProperty('background', 'rgb(0 0 0 / 90%)'),
+            new StylePropertyImpt('height', 'calc(100% - 150px)'),
+            new StylePropertyImpt('width', 'calc(100% - 5px)'),
+            new StylePropertyImpt('top', '70px'),
+            new StylePropertyImpt('background', 'rgb(0 0 0 / 90%)'),
         ]),
         new StyleSelector('.fb_layout .more-comments', [
-            new StyleProperty('color', 'rgb(255 255 255 / 60%)'),
+            new StylePropertyImpt('color', 'rgb(255 255 255 / 60%)'),
+            new StylePropertyImpt('text-align', 'center'),
+            new StylePropertyImpt('padding', '20px 0 0 0'),
         ]),
         new StyleSelector([
             '.fb_layout .more-comments:hover',
             '.fb_layout .more-comments:focus',
         ], [
-            new StyleProperty('color', 'rgb(255 255 255 / 80%)'),
-            new StyleProperty('text-decoration', 'underline'),
+            new StylePropertyImpt('color', 'rgb(255 255 255 / 75%)'),
         ]),
         new StyleSelector([
             '.fb-navigation .fb-navigation-menu a:hover',
@@ -623,7 +614,7 @@
             '.fb-navigation .dailydigest-check .check-text:hover',
             '.fb-navigation .fb-navigation-user .dropdown-menu a span:hover',
         ], [
-            new StyleProperty('color', 'rgb(255 255 255 / 80%)'),
+            new StylePropertyImpt('color', 'rgb(255 255 255 / 80%)'),
         ]),
         new StyleSelector([
             '.fb-navigation .fb-navigation-menu a',
@@ -633,145 +624,267 @@
             '.fb-navigation .dailydigest-check .check-text',
             '.fb-navigation .fb-navigation-user .dropdown-menu a span',
         ], [
-            new StyleProperty('transition', 'color 120ms ease-out, background-color 120ms ease-out'),
+            new StylePropertyImpt('transition', 'color 120ms ease-out, background-color 120ms ease-out'),
         ]),
         new StyleSelector('.fb-navigation-icons .direct_message_lnk svg', [
-            new StyleProperty('width', '28px'),
-            new StyleProperty('height', '22px'),
+            new StylePropertyImpt('width', '28px'),
+            new StylePropertyImpt('height', '22px'),
         ]),
         new StyleSelector('.fb-navigation-icons .direct_message_lnk .dm-unread-dot', [
-            new StyleProperty('top', '-4pxpx'),
-            new StyleProperty('right', '-7px'),
+            new StylePropertyImpt('top', '-4pxpx'),
+            new StylePropertyImpt('right', '-7px'),
         ]),
         new StyleSelector('.forum-bar', [
-            new StyleProperty('height', '56px'),
-            new StyleProperty('border-bottom', '3px solid rgb(130 104 43 / 40%)'),
+            new StylePropertyImpt('height', '56px'),
+            new StylePropertyImpt('border-bottom', '3px solid rgb(130 104 43 / 40%)'),
         ]),
         new StyleSelector('.forum-bar ul li a', [
-            new StyleProperty('padding', '12px 20px 9px 20px'),
-            new StyleProperty('margin', '0 6px'),
-            new StyleProperty('background-color', 'rgb(255 255 255 / 0%)'),
-            new StyleProperty('transition', 'color 280ms ease-in-out, border-color 320ms ease-in-out, background-color 240ms ease-out'),
+            new StylePropertyImpt('padding', '12px 20px 9px 20px'),
+            new StylePropertyImpt('margin', '0 6px'),
+            new StylePropertyImpt('background-color', 'rgb(255 255 255 / 0%)'),
+            new StylePropertyImpt('transition', 'color 280ms ease-in-out, border-color 320ms ease-in-out, background-color 240ms ease-out'),
         ]),
         new StyleSelector([
             '.forum-bar ul li a:hover',
             '.forum-bar ul li a.active'
         ], [
-            new StyleProperty('background-color', 'rgb(255 255 255 / 3%)'),
+            new StylePropertyImpt('background-color', 'rgb(255 255 255 / 3%)'),
         ]),
         new StyleSelector([
             'li',
             'a',
         ], [
-            new StyleProperty('transition', 'color 120ms ease-out, background-color 120ms ease-out'),
+            new StylePropertyImpt('transition', 'color 120ms ease-out, background-color 120ms ease-out'),
         ]),
         new StyleSelector('.fb-navigation-user #my_profile img.user-icon', [
-            new StyleProperty('border-radius', '100%'),
-            new StyleProperty('border', '2px solid transparent'),
-            new StyleProperty('transition', 'border-color 180ms ease-out'),
+            new StylePropertyImpt('border-radius', '100%'),
+            new StylePropertyImpt('border', '2px solid transparent'),
+            new StylePropertyImpt('transition', 'border-color 180ms ease-out'),
         ]),
         new StyleSelector('.fb-navigation-user:hover #my_profile img.user-icon', [
-            new StyleProperty('border-color', 'rgb(255 255 255 / 75%)'),
+            new StylePropertyImpt('border-color', 'rgb(255 255 255 / 75%)'),
+        ]),
+        new StyleSelector([
+            '.full-detail .left-side .messages .set .msg-text, .comment-content .msg-text',
+            '.full-detail figure.upload-img.enable-img-full-mode',
+            '.newfeeds-container .listMessages figure.upload-img',
+            
+            '.fb_layout .newfeeds-container .comment-content .name.msg-user-name',
+            '.fb_layout .modal-content .full-detail .comment-content .name.msg-user-name',
+        ], [
+            new StylePropertyImpt('background-color', 'rgb(106 109 120 / 80%)'),
+        ]),
+        new StyleSelector('.fb_layout .comment-content .text-con', [
+            new StylePropertyImpt('background-color', 'rgb(137 138 147 / 15%)'),
+            new StylePropertyImpt('padding-bottom', '4px'),
+            new StylePropertyImpt('box-shadow', '0 10px 10px 0 rgb(0 0 0 / 10%)'),
+            new StylePropertyImpt('border', '1px solid rgb(0 0 0 / 50%)'),
+        ]),
+        new StyleSelector('.fb_layout .comment-content .option-area', [
+            new StylePropertyImpt('margin', '6px 0 0 10px'),
+        ]),
+        new StyleSelector('.fb_layout .comment-content .option-area .share', [
+            new StylePropertyImpt('margin-top', '2px'),
+        ]),
+        new StyleSelector('.fb_layout .comment-content .like-batch.comment-react-list', [
+            new StylePropertyImpt('height', '18px'),
+            new StylePropertyImpt('bottom', '-4px'),
+            new StylePropertyImpt('opacity', '0.85'),
+            new StylePropertyImpt('box-shadow', '0 2px 1px 0 black'),
+            new StylePropertyImpt('transition', 'opacity 140ms ease-out'),
+        ]),
+        new StyleSelector('.fb_layout .comment-content .like-batch.comment-react-list:hover', [
+            new StylePropertyImpt('opacity', '1.0'),
+        ]),
+        new StyleSelector('.fb_layout .comment-content .like-batch.comment-react-list:hover span', [
+            new StylePropertyImpt('color', 'rgb(0 0 0 / 80%)'),
+        ]),
+        new StyleSelector('.fb_layout .like-batch .count-message', [
+            new StylePropertyImpt('top', '0px'),
+        ]),
+        new StyleSelector('.fb_layout .like-batch .fa', [
+            new StylePropertyImpt('top', '-3px'),
+        ]),
+        new StyleSelector('.fb_layout .comment-content .replies-content:has(.comment-replies .comment-content)', [
+            new StylePropertyImpt('margin-top', '4px'),
+            new StylePropertyImpt('border-top', '2px solid rgb(0 0 0 / 25%) !important'),
+        ]),
+        new StyleSelector('.fb_layout .comment-content .replies-content:has(.comment-replies .comment-content) .load-more-replies', [
+            new StylePropertyImpt('margin', '0'),
+            new StylePropertyImpt('padding', '10px 0 10px 0'),
+            new StylePropertyImpt('text-align', 'center'),
+        ]),
+        new StyleSelector('.fb_layout .comment-content .replies-content:has(.comment-replies .comment-content) .load-more-replies span', [
+            new StylePropertyImpt('color', 'rgb(193 200 207 / 50%)'),
+            new StylePropertyImpt('font-weight', 'normal'),
+            new StylePropertyImpt('text-shadow', '0 0 1px rgb(0 0 0)'),
+            new StylePropertyImpt('width', '100%'),
+        ]),
+        new StyleSelector('.fb_layout .comment-content .replies-content:has(.comment-replies .comment-content) .load-more-replies:hover span', [
+            new StylePropertyImpt('color', 'rgb(193 200 207 / 75%)'),
+        ]),
+        new StyleSelector('.fb_layout .comment-content .replies-content .comment-replies:has(.comment-content) .comment-content', [
+            new StylePropertyImpt('margin', '12px 10px 10px 10px'),
+            new StylePropertyImpt('padding', '0 0 0 1px'),
+        ]),
+        new StyleSelector('.fb_layout .comment-content .replies-content .comment-replies:has(.comment-content) .comment-content:first-child', [
+            new StylePropertyImpt('margin-top', '12px'),
+        ]),
+        new StyleSelector('.fb_layout .comment-content .replies-content .comment-replies:has(.comment-content) .comment-content:last-child', [
+            new StylePropertyImpt('margin-bottom', '7px'),
+        ]),
+        new StyleSelector('.fb_layout .comment-content .replies-content .comment-replies:has(.comment-content) .comment-content:nth-last-child(2)', [
+            new StylePropertyImpt('margin-bottom', '10px'),
+        ]),
+        new StyleSelector('.fb_layout .messages > .messages-text > .comment-content:nth-last-child(2)', [
+            new StylePropertyImpt('margin-bottom', '20px'),
+        ]),
+        new StyleSelector('.fb_layout .comment-content .replies-content .comment-replies:has(.comment-content) .comment-content .user-image', [
+            new StylePropertyImpt('margin-top', '2px'),
+        ]),
+        new StyleSelector('.fb_layout .full-detail .messages', [
+            new StylePropertyImpt('padding-bottom', '0'),
+            new StylePropertyImpt('margin-bottom', '0'),
+        ]),
+        new StyleSelector('.fb_layout .full-detail .messages .comment-content', [
+            new StylePropertyImpt('padding', '0 0 20px 10px'),
+        ]),
+        new StyleSelector('.fb_layout .full-detail .messages .comment-content .card-user', [
+            new StylePropertyImpt('padding', '0'),
+        ]),
+        new StyleSelector('.fb_layout .dropdown-menu', [
+//            new StylePropertyImpt('padding', '0'),
+            new StylePropertyImpt('box-shadow', '0 12px 14px 2px rgb(0 0 0 / 20%)'),
+//            new StylePropertyImpt('border', '1px solid rgb(142 104 42)'),
+        ]),
+        new StyleSelector('.fb_layout .dropdown-menu li', [
+            new StylePropertyImpt('color', 'rgb(142 104 42)'),
+            new StylePropertyImpt('background-color', 'rgb(255 255 255 / 25%)'),
+            new StylePropertyImpt('border-bottom', '1px solid rgb(142 104 42 / 50%)'),
+        ]),
+        new StyleSelector('.fb_layout .dropdown-menu li:hover', [
+            new StylePropertyImpt('color', 'rgb(0 0 0 / 30%)'),
+            new StylePropertyImpt('background-color', 'rgb(255 255 255 / 60%)'),
+        ]),
+        new StyleSelector('.fb_layout .dropdown-menu li:last-child', [
+            new StylePropertyImpt('border-bottom', 'none'),
+        ]),
+        new StyleSelector('.fb_layout .dropdown-menu li:first-child a', [
+            new StylePropertyImpt('border-top-left-radius', '4px'),
+            new StylePropertyImpt('border-top-right-radius', '4px'),
+        ]),
+        new StyleSelector('.fb_layout .dropdown-menu li:last-child a', [
+            new StylePropertyImpt('border-bottom-left-radius', '4px'),
+            new StylePropertyImpt('border-bottom-right-radius', '4px'),
+        ]),
+        new StyleSelector('.full-detail .left-side .action-area', [
+            new StylePropertyImpt('border-bottom', 'none'),
+        ]),
+        new StyleSelector('.full-detail .left-side .comment-sort', [
+            new StylePropertyImpt('border-bottom', 'none'),
         ]),
     ]);
 
     const styleDarker = new StyleConfigDarker([
         new StyleSelector('.fav-tabs', [
-            new StyleProperty('background-color', 'rgb(254 254 254 / 2%)'),
-            new StyleProperty('box-shadow', 'none'),
+            new StylePropertyImpt('background-color', 'rgb(254 254 254 / 2%)'),
+            new StylePropertyImpt('box-shadow', 'none'),
         ]),
         new StyleSelector('body.gray-bg', [
-            new StyleProperty('background-color', 'rgb(12.5 12.5 12.5 / 96%)'),
+            new StylePropertyImpt('background-color', 'rgb(12.5 12.5 12.5 / 96%)'),
         ]),
         new StyleSelector('.fb_layout .newfeeds-container .newfeeds-left .newfeed-userInfo', [
-            new StyleProperty('background-color', 'rgb(255 255 255 / 85%)'),
+            new StylePropertyImpt('background-color', 'rgb(255 255 255 / 85%)'),
         ]),
         new StyleSelector('.fb_layout .forum-popup', [
-            new StyleProperty('background-color', 'rgb(255 255 255 / 85%)'),
+            new StylePropertyImpt('background-color', 'rgb(255 255 255 / 85%)'),
         ]),
         new StyleSelector('.fb_layout .forum-popup .add-forum #makemojifield', [
-            new StyleProperty('padding-top', '18px'),
-            new StyleProperty('box-shadow', 'inset 0 0 1px 1px rgb(0 0 0 / 20%)'),
+            new StylePropertyImpt('padding-top', '18px'),
+            new StylePropertyImpt('box-shadow', 'inset 0 0 1px 1px rgb(0 0 0 / 20%)'),
         ]),
         new StyleSelector('.fb_layout .forum-popup .frm-footer', [
-            new StyleProperty('background-color', 'transparent'),
+            new StylePropertyImpt('background-color', 'transparent'),
+        ]),
+        new StyleSelector('.forum-bar', [
+            new StylePropertyImpt('box-shadow', '0 14px 14px 0 rgb(0 0 0 / 10%)'),
         ]),
         new StyleSelector('.fb_layout .forum-bar .filter-forum-by-type .dropdown-menu:before', [
-            new StyleProperty('background', 'none'),
+            new StylePropertyImpt('background', 'none'),
         ]),
         new StyleSelector('.fb_layout .forum-bar .filter-forum-by-type .dropdown-menu li a', [
-            new StyleProperty('margin', '0'),
+            new StylePropertyImpt('margin', '0'),
         ]),
         new StyleSelector([
             '.fb_layout .forum-bar .filter-forum-by-type .dropdown-menu li a:hover',
             '.fb_layout .forum-bar .filter-forum-by-type .dropdown-menu li a:active',
         ], [
-            new StyleProperty('border-bottom', '1px solid #ccc'),
+            new StylePropertyImpt('border-bottom', '1px solid #ccc'),
         ]),
         new StyleSelector([
             '.fb_layout .forum-bar .filter-forum-by-type .dropdown-menu li:last-child a:hover',
             '.fb_layout .forum-bar .filter-forum-by-type .dropdown-menu li:last-child a:active',
         ], [
-            new StyleProperty('border-bottom', 'none'),
+            new StylePropertyImpt('border-bottom', 'none'),
         ]),
         new StyleSelector([
             'body.fb_layout .newfeeds-left .forum-bar .newfeed-leftBox .dropdown .dropdown-toggle',
             'body.fb_layout .newfeed-leftBox.newfeed-seachBox .form-control',
             'body.fb_layout .newfeed-leftBox .post-panel',
         ], [
-            new StyleProperty('background-color', 'rgb(241 240 240 / 85%)'),
+            new StylePropertyImpt('background-color', 'rgb(241 240 240 / 85%)'),
         ]),
         new StyleSelector('.fan-wall.activity-panel .fan-wall-post.discussions', [
-            new StyleProperty('border-color', 'rgb(15 15 15)'),
-            new StyleProperty('background-color', 'rgb(255 255 255 / 75%)'),
+            new StylePropertyImpt('border-color', 'rgb(15 15 15)'),
+            new StylePropertyImpt('background-color', 'rgb(255 255 255 / 75%)'),
         ]),
         new StyleSelector('.fan-wall.activity-panel .fan-wall-post.discussions > li', [
-            new StyleProperty('background-color', 'rgb(15 11 14 / 30%)'),
-            new StyleProperty('border-left', '4px solid rgb(0 0 0 / 36%)'),
-            new StyleProperty('border-right', '4px solid rgb(0 0 0 / 36%)'),
-            new StyleProperty('transition', 'background-color 280ms ease-out'),
+            new StylePropertyImpt('background-color', 'rgb(15 11 14 / 27%)'),
+            new StylePropertyImpt('border-left', '4px solid rgb(0 0 0 / 36%)'),
+            new StylePropertyImpt('border-right', '4px solid rgb(0 0 0 / 36%)'),
+            new StylePropertyImpt('transition', 'background-color 280ms ease-out'),
         ]),
         new StyleSelector([
             '.fan-wall.activity-panel .fan-wall-post.discussions > li:hover',
             '.fan-wall.activity-panel .fan-wall-post.discussions > li:focus',
         ], [
-            new StyleProperty('background-color', 'rgb(16 11 14 / 25%)'),
+            new StylePropertyImpt('background-color', 'rgb(16 11 14 / 22%)'),
         ]),
         new StyleSelector('.fan-wall.activity-panel .fan-wall-post.discussions > li p', [
-            new StyleProperty('color', 'rgb(54 54 54)'),
-            new StyleProperty('text-shadow', '0 0'),
-            new StyleProperty('text-shadow-color', 'rgb(0 0 0 / 2.5%)'),
-            new StyleProperty('transition', 'color 220ms ease-out, text-shadow-color 220ms ease-out'),
+            new StylePropertyImpt('color', 'rgb(54 54 54)'),
+            new StylePropertyImpt('text-shadow', '0 0'),
+            new StylePropertyImpt('text-shadow-color', 'rgb(0 0 0 / 2.5%)'),
+            new StylePropertyImpt('transition', 'color 220ms ease-out, text-shadow-color 220ms ease-out'),
         ]),
         new StyleSelector([
             '.fan-wall.activity-panel .fan-wall-post.discussions > li:focus p',
             '.fan-wall.activity-panel .fan-wall-post.discussions > li:hover p',
         ], [
-            new StyleProperty('color', 'rgb(14 14 14)'),
-            new StyleProperty('text-shadow-color', 'rgb(0 0 0 / 100%)'),
+            new StylePropertyImpt('color', 'rgb(14 14 14)'),
+            new StylePropertyImpt('text-shadow-color', 'rgb(0 0 0 / 100%)'),
         ]),
         new StyleSelector('.fan-wall.activity-panel .fan-wall-post.discussions > li.un-read', [
-            new StyleProperty('background-color', 'rgb(142 104 42 / 77.5%)'),
-            new StyleProperty('border-left-color', 'rgb(109 74 16)'),
-            new StyleProperty('border-right-color', 'rgb(109 74 16)'),
+            new StylePropertyImpt('background-color', 'rgb(142 104 42 / 72.5%)'),
+            new StylePropertyImpt('border-left-color', 'rgb(109 74 16)'),
+            new StylePropertyImpt('border-right-color', 'rgb(109 74 16)'),
         ]),
         new StyleSelector([
             '.fan-wall.activity-panel .fan-wall-post.discussions > li.un-read p',
             '.fan-wall.activity-panel .fan-wall-post.discussions > li.un-read p',
         ], [
-            new StyleProperty('text-shadow-color', 'rgb(0 0 0 / 80%)'),
+            new StylePropertyImpt('text-shadow-color', 'rgb(0 0 0 / 80%)'),
         ]),
         new StyleSelector([
             '.fan-wall.activity-panel .fan-wall-post.discussions > li.un-read:hover',
             '.fan-wall.activity-panel .fan-wall-post.discussions > li.un-read:focus',
         ], [
-            new StyleProperty('background-color', 'rgb(142 104 42 / 62.5%)'),
+            new StylePropertyImpt('background-color', 'rgb(142 104 42 / 60%)'),
         ]),
         new StyleSelector([
             '.fan-wall.activity-panel .fan-wall-post.discussions > li.un-read:hover p',
             '.fan-wall.activity-panel .fan-wall-post.discussions > li.un-read:focus p',
         ], [
-            new StyleProperty('color', 'rgb(24 24 24)'),
+            new StylePropertyImpt('color', 'rgb(24 24 24)'),
         ]),
     ]);
 
@@ -780,7 +893,7 @@
     /* setup function definitions */
 
     const setupPageEventPostsExpand = (selectorList, eventType = 'dblclick') => {
-        const postsSelectorList = StyleSelector.selectorArrayToString(
+        const postsSelectorList = StyleSelector.selectorsToString(
             selectorList.map((selector) => `${selector} .post-panel`)
         );
 
@@ -796,8 +909,8 @@
             } finally {
                 panel.bind(eventType, (event) => {
                     try {
-                        let target = jq(event.currentTarget);
-                        let button = target.find('> .post-footer > .comment > i');
+                        const target = jq(event.currentTarget);
+                        const button = target.find('> .post-footer > .comment > i');
 
                         log.info('(EVNT) Posts expand: triggered event element:', target);
                         log.info('(EVNT) Posts expand: clicking button element:', button);
@@ -819,7 +932,7 @@
 
             pagePostsObserver.observe(
                 document.querySelector(
-                    StyleSelector.selectorArrayToString(selectorList)
+                    StyleSelector.selectorsToString(selectorList)
                 ), {
                     childList : true,
                     attributes: false,
@@ -832,7 +945,7 @@
     };
 
     const setupPageEventModalCloses = (selectorList, eventType = 'dblclick') => {
-        jq(StyleSelector.selectorArrayToString(selectorList)).each((index, modal) => {
+        jq(StyleSelector.selectorsToString(selectorList)).each((index, modal) => {
             modal = jq(modal);
 
             log.info(`(INIT) Modal closes: attaching "${eventType}" event to:`, modal);
