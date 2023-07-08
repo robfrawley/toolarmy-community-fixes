@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tool Army Community Fixes
 // @namespace    https://github.com/robfrawley/toolarmy-community-fixes
-// @version      0.6.1
+// @version      0.7.0
 // @description  A collection of CSS style fixes and JavaScript behavioral changes for the Tool Army website.
 // @author       Rob Frawley 2nd <src@robfrawley.com>
 // @copyright    2023
@@ -50,6 +50,10 @@
             }
 
             return String(typeof value === 'undefined' ? '' : value);
+        }
+
+        static padValue (val, size = 3, char = ' ') {
+            return Normalizer.toString(typeof val == 'object' ? val.length : val).padStart(size, char);
         }
     }
 
@@ -439,18 +443,24 @@
         new StyleSelector([
             'body.fb_layout .act-drop .dropdown ul li a',
             'body.fb_layout .share.dropup ul li a',
+            'body.fb_layout .forum-bar .dropdown .dropdown-menu li a',
         ], [
+            new StylePropertyImpt('color', 'rgb(0 0 0 / 55%)'),
             new StylePropertyImpt('padding', '10px 18px'),
+            new StylePropertyImpt('margin-left', '0'),
+            new StylePropertyImpt('margin-right', '0'),
             new StylePropertyImpt('top', 'auto'),
+            new StylePropertyImpt('background-color', 'rgb(0 0 0 / 0%)'),
+            new StylePropertyImpt('transition', 'color 120ms ease-out, background-color 120ms ease-out'),
         ]),
         new StyleSelector([
             'body.fb_layout .act-drop .dropdown ul li:hover a',
             'body.fb_layout .share.dropup ul li:hover a',
+            'body.fb_layout .forum-bar .dropdown .dropdown-menu li:hover a',
         ], [
-            new StylePropertyImpt('background-color', 'rgb(0 0 0 / 5%)'),
-            new StylePropertyImpt('color', 'rgb(0 0 0)'),
-            new StylePropertyImpt('font-weight', 'bold'),
-            new StylePropertyImpt('text-shadow', '0 0 4px rgb(255 255 255)'),
+            new StylePropertyImpt('background-color', 'rgb(0 0 0 / 10%)'),
+            new StylePropertyImpt('color', 'rgb(0 0 0 / 100%)'),
+            new StylePropertyImpt('text-shadow', '0 1px 0 rgb(255 255 255)'),
         ]),
         new StyleSelector('body.fb_layout .share.dropup ul li a span', [
             new StylePropertyImpt('padding-left', '3px'),
@@ -595,6 +605,9 @@
             new StylePropertyImpt('top', '70px'),
             new StylePropertyImpt('background', 'rgb(0 0 0 / 90%)'),
         ]),
+        new StyleSelector('.fb_layout .modal-dialog .more-comments', [
+            new StylePropertyImpt('padding', '0 0 20px 0'),
+        ]),
         new StyleSelector('.fb_layout .more-comments', [
             new StylePropertyImpt('color', 'rgb(255 255 255 / 60%)'),
             new StylePropertyImpt('text-align', 'center'),
@@ -607,16 +620,6 @@
             new StylePropertyImpt('color', 'rgb(255 255 255 / 75%)'),
         ]),
         new StyleSelector([
-            '.fb-navigation .fb-navigation-menu a:hover',
-            '.fb-navigation .dropdown-submenu a:hover',
-            '.fb-navigation .nav-item .dropdown-submenu .dropdown-menu h5:hover',
-            '.fb-navigation .fb-navigation-user .dropdown-menu a:hover',
-            '.fb-navigation .dailydigest-check .check-text:hover',
-            '.fb-navigation .fb-navigation-user .dropdown-menu a span:hover',
-        ], [
-            new StylePropertyImpt('color', 'rgb(255 255 255 / 80%)'),
-        ]),
-        new StyleSelector([
             '.fb-navigation .fb-navigation-menu a',
             '.fb-navigation .dropdown-submenu a',
             '.fb-navigation .nav-item .dropdown-submenu .dropdown-menu h5',
@@ -625,6 +628,16 @@
             '.fb-navigation .fb-navigation-user .dropdown-menu a span',
         ], [
             new StylePropertyImpt('transition', 'color 120ms ease-out, background-color 120ms ease-out'),
+        ]),
+        new StyleSelector([
+            '.fb-navigation .fb-navigation-menu a:hover',
+            '.fb-navigation .dropdown-submenu a:hover',
+            '.fb-navigation .nav-item .dropdown-submenu .dropdown-menu h5:hover',
+            '.fb-navigation .fb-navigation-user .dropdown-menu a:hover',
+            '.fb-navigation .dailydigest-check .check-text:hover',
+            '.fb-navigation .fb-navigation-user .dropdown-menu a span:first-child:hover',
+        ], [
+            new StylePropertyImpt('color', 'rgb(255 255 255 / 80%)'),
         ]),
         new StyleSelector('.fb-navigation-icons .direct_message_lnk svg', [
             new StylePropertyImpt('width', '28px'),
@@ -668,7 +681,7 @@
             '.full-detail .left-side .messages .set .msg-text, .comment-content .msg-text',
             '.full-detail figure.upload-img.enable-img-full-mode',
             '.newfeeds-container .listMessages figure.upload-img',
-            
+
             '.fb_layout .newfeeds-container .comment-content .name.msg-user-name',
             '.fb_layout .modal-content .full-detail .comment-content .name.msg-user-name',
         ], [
@@ -680,24 +693,52 @@
             new StylePropertyImpt('box-shadow', '0 10px 10px 0 rgb(0 0 0 / 10%)'),
             new StylePropertyImpt('border', '1px solid rgb(0 0 0 / 50%)'),
         ]),
+        new StyleSelector('.fb_layout .comment-content .reply-link', [
+            new StylePropertyImpt('border-left', 'rgb(228 235 237 / 60%) 1px solid'),
+            new StylePropertyImpt('padding-left', '2px'),
+        ]),
+        new StyleSelector('.fb_layout .comment-content .reply-link a', [
+            new StylePropertyImpt('color', 'rgb(142 104 42)'),
+            new StylePropertyImpt('transition', 'color 180ms ease-out'),
+        ]),
+        new StyleSelector('.fb_layout .comment-content .reply-link a:hover', [
+            new StylePropertyImpt('color', 'rgb(255 255 255 / 80%)'),
+        ]),
         new StyleSelector('.fb_layout .comment-content .option-area', [
             new StylePropertyImpt('margin', '6px 0 0 10px'),
         ]),
-        new StyleSelector('.fb_layout .comment-content .option-area .share', [
-            new StylePropertyImpt('margin-top', '2px'),
+        new StyleSelector([
+            '.fb_layout .comment-content .option-area .share',
+            '.fb_layout .comment-content .option-area .like-comment',
+        ], [
+            new StylePropertyImpt('margin-top', '1px'),
+            new StylePropertyImpt('opacity', '0.75'),
+            new StylePropertyImpt('transition', 'opacity 180ms ease-out'),
+        ]),
+        new StyleSelector([
+            '.fb_layout .comment-content .option-area .share:hover',
+            '.fb_layout .comment-content .option-area .like-comment:hover',
+        ], [
+            new StylePropertyImpt('opacity', '1'),
         ]),
         new StyleSelector('.fb_layout .comment-content .like-batch.comment-react-list', [
             new StylePropertyImpt('height', '18px'),
             new StylePropertyImpt('bottom', '-4px'),
-            new StylePropertyImpt('opacity', '0.85'),
-            new StylePropertyImpt('box-shadow', '0 2px 1px 0 black'),
-            new StylePropertyImpt('transition', 'opacity 140ms ease-out'),
+            new StylePropertyImpt('background-color', 'rgb(255 255 255 / 50%)'),
+            new StylePropertyImpt('box-shadow', '0 2px 1px 0 rgb(0 0 0 / 25%)'),
+            new StylePropertyImpt('transition', 'background-color 180ms ease-out, color 180ms ease-out'),
+        ]),
+        new StyleSelector('.fb_layout .comment-content .like-batch.comment-react-list span', [
+            new StylePropertyImpt('color', 'rgb(116 85 35)'),
+            new StylePropertyImpt('text-shadow', '0 1px 0px rgb(0 0 0)'),
+            new StylePropertyImpt('transition', 'text-shadow 180ms ease-out, color 180ms ease-out'),
         ]),
         new StyleSelector('.fb_layout .comment-content .like-batch.comment-react-list:hover', [
-            new StylePropertyImpt('opacity', '1.0'),
+            new StylePropertyImpt('background-color', 'rgb(255 255 255 / 80%)'),
         ]),
         new StyleSelector('.fb_layout .comment-content .like-batch.comment-react-list:hover span', [
-            new StylePropertyImpt('color', 'rgb(0 0 0 / 80%)'),
+            new StylePropertyImpt('text-shadow', '0 1px 0px rgb(0 0 0 / 80%)'),
+            new StylePropertyImpt('color', 'rgb(142 104 42)'),
         ]),
         new StyleSelector('.fb_layout .like-batch .count-message', [
             new StylePropertyImpt('top', '0px'),
@@ -707,7 +748,7 @@
         ]),
         new StyleSelector('.fb_layout .comment-content .replies-content:has(.comment-replies .comment-content)', [
             new StylePropertyImpt('margin-top', '4px'),
-            new StylePropertyImpt('border-top', '2px solid rgb(0 0 0 / 25%) !important'),
+            new StylePropertyImpt('border-top', '2px solid rgb(0 0 0 / 25%)'),
         ]),
         new StyleSelector('.fb_layout .comment-content .replies-content:has(.comment-replies .comment-content) .load-more-replies', [
             new StylePropertyImpt('margin', '0'),
@@ -739,6 +780,9 @@
         new StyleSelector('.fb_layout .messages > .messages-text > .comment-content:nth-last-child(2)', [
             new StylePropertyImpt('margin-bottom', '20px'),
         ]),
+        new StyleSelector('.fb_layout .modal .messages > .messages-text > .comment-content:nth-last-child(2)', [
+            new StylePropertyImpt('margin-bottom', '10px'),
+        ]),
         new StyleSelector('.fb_layout .comment-content .replies-content .comment-replies:has(.comment-content) .comment-content .user-image', [
             new StylePropertyImpt('margin-top', '2px'),
         ]),
@@ -752,10 +796,32 @@
         new StyleSelector('.fb_layout .full-detail .messages .comment-content .card-user', [
             new StylePropertyImpt('padding', '0'),
         ]),
-        new StyleSelector('.fb_layout .dropdown-menu', [
-//            new StylePropertyImpt('padding', '0'),
+        new StyleSelector('.full-detail .left-side .action-area', [
+            new StylePropertyImpt('margin-bottom', '20px'),
+        ]),
+        new StyleSelector('.full-detail .left-side .comment-sort', [
+            new StylePropertyImpt('display', 'none'),
+        ]),
+        new StyleSelector('.newfeeds-container .messages-text > .comment-content > .card-user', [
+            new StylePropertyImpt('padding', '20px 10px 0'),
+        ]),
+        new StyleSelector('.show-more-less-comment-section_button .span-show-more', [
+            new StylePropertyImpt('display', 'block'),
+            new StylePropertyImpt('text-align', 'center'),
+            new StylePropertyImpt('color', 'rgb(255 255 255 / 80%)'),
+            new StylePropertyImpt('background-color', 'rgb(0 0 0 / 15%)'),
+            new StylePropertyImpt('margin-top', '20px'),
+            new StylePropertyImpt('border-radius', '4px'),
+            new StylePropertyImpt('text-shadow', '0 1px 0 rgb(0 0 0)'),
+        ]),
+        new StyleSelector('.show-more-less-comment-section_button .span-show-more:hover', [
+            new StylePropertyImpt('color', 'rgb(255 255 255 / 100%)'),
+            new StylePropertyImpt('background-color', 'rgb(0 0 0 / 20%)'),
+        ]),
+        new StyleSelector('.fb_layout div:not(.fb-navigation-user) > .dropdown-menu', [
+            new StylePropertyImpt('padding', '0'),
             new StylePropertyImpt('box-shadow', '0 12px 14px 2px rgb(0 0 0 / 20%)'),
-//            new StylePropertyImpt('border', '1px solid rgb(142 104 42)'),
+            new StylePropertyImpt('border', '1px solid rgb(142 104 42)'),
         ]),
         new StyleSelector('.fb_layout .dropdown-menu li', [
             new StylePropertyImpt('color', 'rgb(142 104 42)'),
@@ -766,8 +832,14 @@
             new StylePropertyImpt('color', 'rgb(0 0 0 / 30%)'),
             new StylePropertyImpt('background-color', 'rgb(255 255 255 / 60%)'),
         ]),
+        new StyleSelector('.fb_layout .dropdown-menu li:first-child', [
+            new StylePropertyImpt('border-top-left-radius', '4px'),
+            new StylePropertyImpt('border-top-right-radius', '4px'),
+        ]),
         new StyleSelector('.fb_layout .dropdown-menu li:last-child', [
             new StylePropertyImpt('border-bottom', 'none'),
+            new StylePropertyImpt('border-bottom-left-radius', '4px'),
+            new StylePropertyImpt('border-bottom-right-radius', '4px'),
         ]),
         new StyleSelector('.fb_layout .dropdown-menu li:first-child a', [
             new StylePropertyImpt('border-top-left-radius', '4px'),
@@ -777,11 +849,26 @@
             new StylePropertyImpt('border-bottom-left-radius', '4px'),
             new StylePropertyImpt('border-bottom-right-radius', '4px'),
         ]),
-        new StyleSelector('.full-detail .left-side .action-area', [
-            new StylePropertyImpt('border-bottom', 'none'),
+        new StyleSelector('.fb_layout .react-info .comment_count', [
+            new StylePropertyImpt('color', 'rgb(255 255 255 / 40%)'),
         ]),
-        new StyleSelector('.full-detail .left-side .comment-sort', [
-            new StylePropertyImpt('border-bottom', 'none'),
+        new StyleSelector([
+            '.fan-wall.activity-panel .content .comment div',
+            '.fan-wall.activity-panel .content .btn-block .time',
+        ], [
+            new StylePropertyImpt('color', 'rgb(0 0 0 / 60%)'),
+        ]),
+        new StyleSelector('#auto-like-button span.button', [
+        ]),
+        new StyleSelector('#auto-like-button span.status', [
+            new StylePropertyImpt('color', 'rgb(123 58 58)'),
+            new StylePropertyImpt('transition', 'color 280ms ease-in-out'),
+        ]),
+        new StyleSelector('#auto-like-button span.status.running', [
+            new StylePropertyImpt('color', 'rgb(62 123 58)'),
+        ]),
+        new StyleSelector('#auto-like-button span.status.errored', [
+            new StylePropertyImpt('color', ' rgb(139 89 33)'),
         ]),
     ]);
 
@@ -927,7 +1014,7 @@
     const setupObserversPostsExpand = (selectorList) => {
         try {
             const pagePostsObserver = new MutationObserver(() => {
-                setupPageEventPostsExpand();
+                setupPageEventPostsExpand(selectorList);
             });
 
             pagePostsObserver.observe(
@@ -985,9 +1072,10 @@
 
         setupPageEventModalCloses(modalContainerSelectorList);
         setupPageEventPostsExpand(panelContainerSelectorList);
-        setupObserversPostsExpand(panelContainerSelectorList);
 
         log.info('(INIT) Setting up page mutation observers ...');
+
+        setupObserversPostsExpand(panelContainerSelectorList);
     };
 
     const setupPageStyles = () => {
@@ -1020,10 +1108,202 @@
         }
     };
 
+    class AutoPostLikeOperation {
+        _actRunning = false;
+        _anchorName = 'auto-like-button';
+        _buttonSpan = '<span class="button">Auto Like Posts</span>';
+        _statusSpan = '<span class="status">Not Running</span>';
+        _statusText = {
+            running: 'Running',
+            stopped: 'Not Running',
+            errored: 'Invalid Page',
+        };
+        _statusIden = [
+            'running',
+            'stopped',
+            'errored',
+        ];
+
+        constructor(menuSelector) {
+            const windowPathname = window.location.pathname;
+
+            if (!windowPathname.startsWith('/forums') && !windowPathname.startsWith('/feeds')) {
+                return;
+            }
+
+            jq(menuSelector).append(
+                jq(`<a id="${this._anchorName}" href="#">${this._buttonSpan} ${this._statusSpan}</a>`)
+            );
+
+            this._linkAnchor = jq('a#auto-like-button');
+            this._linkButton = this._linkAnchor.find('.button');
+            this._linkStatus = this._linkAnchor.find('.status');
+
+            this._linkButton.click((event) => {
+                event.preventDefault();
+
+                if (this._actRunning) {
+                    this.setStateStopped();
+                } else {
+                    this.setStateRunning();
+                }
+            });
+        }
+
+        setStateRunning() {
+            this._setLinkStatusState('running');
+            this._setupIntervals();
+        }
+
+        setStateStopped() {
+            this._setLinkStatusState('stopped');
+            this._clearIntervals();
+        }
+
+        setStateErrored() {
+            this._setLinkStatusState('errored');
+            this._clearIntervals();
+        }
+
+        _setLinkStatusState(state) {
+            this._actRunning = state === 'running';
+            this._linkStatus.text(this._statusText[state]);
+            this._linkStatus.addClass(state);
+            this._statusIden.filter((c) => c !== state).forEach((c) => {
+                this._linkStatus.removeClass(c);
+            });
+        }
+
+        _setupIntervals() {
+            try {
+                this._doPostLikeInterval = setInterval(this._doPostLikeAction.bind(this), 2000);
+                this._doMoveUpUpInterval = setInterval(this._doMoveUpUpAction.bind(this), 750);
+            } catch(e) {
+                log.warn('(ACTS) Auto like failed to setup intervals:', e);
+            }
+        }
+
+        _clearIntervals() {
+            try {
+                clearInterval(this._doPostLikeInterval);
+                clearInterval(this._doMoveUpUpInterval);
+            } catch(e) {
+                log.warn('(ACTS) Auto like failed to clear intervals:', e);
+            }
+        }
+
+        _doPostLikeAction() {
+            this._doPostLikeActionRemoveExtraPosts();
+            this._doPostLikeActionMoveToPageBottom();
+            this._doPostLikeActionPerformLikeClick();
+        }
+
+        _doMoveUpUpAction() {
+            let scrollAtPosition = Math.floor(document.documentElement.scrollTop || document.body.scrollTop);
+            let scrollToPosition = scrollAtPosition - 100;
+
+            try {
+                window.scrollTo(0, scrollToPosition);
+            } catch(e) {
+                log.fail('[scrollUpABit] Failed jumping scroll position up a bit ...', e);
+            }
+        }
+
+        _doPostLikeActionMoveToPageBottom() {
+            let scrollToPosition = document.body.scrollHeight;
+
+            log.info('[scrollToBott] Jump to "' + Normalizer.padValue(scrollToPosition, 12) + '" scroll position ...');
+
+            try {
+                window.scrollTo(0, scrollToPosition);
+            } catch(e) {
+                log.fail('[scrollToBott] Failed jumping to scroll position ...', e);
+            }
+        }
+
+        _doPostLikeActionPerformLikeClick() {
+
+            const sliceRandom = (arr, max, min) => {
+                return arr.slice(0, arr.length > max ? getRandomInt(max, min) : arr.length);
+            };
+
+            const clickElement = (element) => {
+                return element.click();
+            };
+
+            const postElementsLocated = this._querySelects('div.improvised_like_link[like-type=""]:not(.like-disable)');
+            const postElementsToClick = sliceRandom(postElementsLocated, 30, 5);
+
+            log.info('[socialClicks] Clicked "' + Normalizer.padValue(postElementsToClick.length) + '" of "' + Normalizer.padValue(postElementsLocated.length) + '" post social buttons ...');
+
+            try {
+                postElementsToClick.forEach(clickElement);
+            } catch(e) {
+                log.fail('[socialClicks] Failed clicking post social buttons ...', e);
+            }
+
+            return postElementsToClick.length;
+        }
+
+        _doPostLikeActionRemoveExtraPosts(percent = 0.5, minimum = 20) {
+            let postingElements = this._querySelects('div.card-parent-div');
+            let postingDelCount = Math.max(Math.floor(postingElements.length * percent), 0);
+            let rmDomElement = (element) => {
+                return element.parentNode.removeChild(element);
+            };
+
+            if (postingDelCount > postingElements.length) {
+                postingDelCount = postingElements.length;
+            }
+
+            if ((postingElements.length - postingDelCount) < minimum) {
+                postingDelCount = Math.max(postingElements.length - minimum, 0);
+            }
+
+            postingElements.slice(0, postingDelCount).forEach(rmDomElement);
+
+            log.info('[postsRemoval] Removed "' + Normalizer.padValue(
+                postingDelCount
+            ) + '" of "' + Normalizer.padValue(
+                postingElements.length
+            ) + '" posts ...');
+
+            let commentElements = this._querySelects('div.grid-item.listMessages');
+            let commentDelCount = Math.max(Math.floor(commentElements.length * percent), 0);
+
+            if (commentDelCount > commentElements.length) {
+                commentDelCount = commentElements.length;
+            }
+
+            if ((commentElements.length - commentDelCount) < minimum) {
+                commentDelCount = Math.max(commentElements.length - minimum, 0);
+            }
+
+            commentElements.slice(0, commentDelCount).forEach(rmDomElement);
+
+            log.info('[postsRemoval] Removed "' + Normalizer.padValue(
+                commentDelCount
+            ) + '" of "' + Normalizer.padValue(
+                commentElements.length
+            ) + '" comments ...');
+        }
+
+        _querySelects(selector) {
+            return Array.from(document.querySelectorAll(selector));
+        }
+    }
+
+    const setupInjectionsAutoLikeLink = () => {
+        log.info('(INIT) Injecting auto like operation link ...');
+
+        const autoPostLike = new AutoPostLikeOperation('.fb-navigation-user .dropdown-menu');
+    };
+
     const setupInjections = () => {
         log.info('(INIT) Setting up page injections ...');
 
         setupInjectionsMessagesIcon();
+        setupInjectionsAutoLikeLink();
     };
 
     /* invoke functions that do not require page load event to fire */
@@ -1036,8 +1316,8 @@
 
     window.addEventListener('load', () => {
         log.info('(LOAD) Executing initialization functions ...');
-        setupPageEvents();
         setupInjections();
+        setupPageEvents();
         log.info('(LOAD) Completed initialization functions ...');
     }, false);
 
